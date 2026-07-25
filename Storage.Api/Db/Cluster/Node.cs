@@ -7,7 +7,6 @@
 
 using LinqToDB;
 using LinqToDB.Mapping;
-using System;
 using System.Collections.Generic;
 
 #pragma warning disable 1573, 1591
@@ -17,9 +16,9 @@ namespace Storage.Db.Cluster
 	[Table("node", Schema = "public")]
 	public partial class Node
 	{
-		[Column("node_id"  , DataType = DataType.Int32, DbType = "integer", IsPrimaryKey = true, IsIdentity = true, SkipOnInsert = true, SkipOnUpdate = true)] public int    NodeId   { get; set; } // integer
-		[Column("node_guid", DataType = DataType.Guid , DbType = "uuid"                                                                                     )] public Guid   NodeGuid { get; set; } // uuid
-		[Column("host_name", DataType = DataType.Text , DbType = "text"                                                                                     )] public string HostName { get; set; } // text
+		[Column("node_id"  , DataType  = DataType.Int32, DbType   = "integer"    , IsPrimaryKey = true  , IsIdentity = true, SkipOnInsert = true, SkipOnUpdate = true)] public int    NodeId   { get; set; } // integer
+		[Column("node_name", CanBeNull = false         , DataType = DataType.Text, DbType       = "text"                                                             )] public string NodeName { get; set; } // text
+		[Column("host_name", CanBeNull = false         , DataType = DataType.Text, DbType       = "text"                                                             )] public string HostName { get; set; } // text
 
 		#region Associations
 		/// <summary>

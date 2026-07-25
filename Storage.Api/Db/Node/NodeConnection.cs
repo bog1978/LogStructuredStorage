@@ -34,7 +34,6 @@ namespace Storage.Db.Node
 		partial void InitDataContext();
 
 		public ITable<File>    Files    => this.GetTable<File>();
-		public ITable<Node>    Nodes    => this.GetTable<Node>();
 		public ITable<Package> Packages => this.GetTable<Package>();
 	}
 }

@@ -27,7 +27,7 @@ namespace Storage.Db.Node
 		/// <summary>
 		/// file_package_id_fkey
 		/// </summary>
-		[Association(CanBeNull = false, ThisKey = nameof(PackageId), OtherKey = nameof(Db.Node.Package.PackageId))]
+		[Association(CanBeNull = false, ThisKey = nameof(PackageId), OtherKey = nameof(Node.Package.PackageId))]
 		public Package Package { get; set; }
 		#endregion
 	}

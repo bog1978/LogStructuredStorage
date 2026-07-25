@@ -7,6 +7,7 @@ using OpenTelemetry;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Trace;
 using Storage.Api.Db;
+using Storage.Api.Services;
 
 namespace Storage.Api;
 
@@ -15,7 +16,7 @@ internal sealed class Program
     public static async Task Main(string[] args)
     {
         var builder = WebApplication.CreateBuilder(args);
-        
+
         // Настройка OpenTelemetry
         builder.Services.AddOpenTelemetry()
             .UseOtlpExporter()
@@ -32,6 +33,7 @@ internal sealed class Program
                 .AddProcessInstrumentation());
 
         // Настройка конфигурации
+        builder.Services.BindOptions<StorageOptions>(builder.Configuration);
         var storageOptions = builder.Configuration.GetOptions<StorageOptions>();
 
         // Настройка Swagger
@@ -58,14 +60,15 @@ internal sealed class Program
                     .AllowAnyMethod()))
             .AddStorage(builder.Configuration)
             .AddApiHandlers()
+            .AddTransient<NodeInitializer>()
             .AddHealthChecks();
-        
+
         // Лимит для multipart/form-data из настройки
         // Лимит загрузки 32 МБ. 0 или отрицательное значение = без ограничения
         var bodySizeLimit = storageOptions.BodySizeLimitMb * 1024 * 1024;
         builder.Services.Configure<FormOptions>(options =>
             options.MultipartBodyLengthLimit = bodySizeLimit);
-        
+
         var app = builder.Build();
         app.UseCors("all");
         if (app.Environment.IsDevelopment())
@@ -77,6 +80,13 @@ internal sealed class Program
         app.MapApiHandlers();
         app.MapHealthChecks("/health");
         app.UseMaxRequestBodySize(bodySizeLimit);
+
+        // Регистрация узла в кластере.
+        using (var scope = app.Services.CreateScope())
+        {
+            var nodeInitializer = scope.ServiceProvider.GetRequiredService<NodeInitializer>();
+            await nodeInitializer.InitializeAsync(CancellationToken.None);
+        }
 
         await app.RunAsync();
     }
