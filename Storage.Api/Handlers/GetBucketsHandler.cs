@@ -1,8 +1,9 @@
 ﻿using JetBrains.Annotations;
+using LinqToDB.Async;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Options;
 using MinimalApi.Hosting;
+using Storage.Db.Cluster;
 
 namespace Storage.Api.Handlers;
 
@@ -18,11 +19,12 @@ internal sealed class GetBucketsHandler : IEndpointHandler
     ];
 
     /// <summary>Список бакетов.</summary>
-    private static async Task<Ok<List<string>>> GetBucketsAsync(
+    private static async Task<Ok<List<Bucket>>> GetBucketsAsync(
         [FromServices] ILogger<GetBucketsHandler> logger,
-        [FromServices] IOptions<StorageOptions> options,
+        [FromServices] ClusterConnection clusterConnection,
         CancellationToken token)
     {
-        return TypedResults.Ok(new List<string> { "" });
+        var buckets = await clusterConnection.Buckets.ToListAsync(token);
+        return TypedResults.Ok(buckets);
     }
 }

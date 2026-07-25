@@ -6,6 +6,7 @@ using Npgsql;
 using OpenTelemetry;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Trace;
+using Storage.Api.Db;
 
 namespace Storage.Api;
 
@@ -31,7 +32,7 @@ internal sealed class Program
                 .AddProcessInstrumentation());
 
         // Настройка конфигурации
-        builder.Services.BindOptions<StorageOptions>(builder.Configuration);
+        var storageOptions = builder.Configuration.GetOptions<StorageOptions>();
 
         // Настройка Swagger
         builder.Services.AddEndpointsApiExplorer();
@@ -44,8 +45,6 @@ internal sealed class Program
                 Version = "v1"
             });
             c.AddServer(new OpenApiServer { Url = "/" });
-            c.AddServer(new OpenApiServer { Url = "/public" });
-            c.AddServer(new OpenApiServer { Url = "/internal" });
             c.IncludeXmlComments(typeof(Program).Assembly);
             c.OrderActionsBy(apiDesc => $"{apiDesc.RelativePath}:{apiDesc.HttpMethod}");
         });
@@ -57,12 +56,13 @@ internal sealed class Program
                     .AllowAnyOrigin()
                     .AllowAnyHeader()
                     .AllowAnyMethod()))
+            .AddStorage(builder.Configuration)
             .AddApiHandlers()
             .AddHealthChecks();
-
+        
         // Лимит для multipart/form-data из настройки
         // Лимит загрузки 32 МБ. 0 или отрицательное значение = без ограничения
-        const int bodySizeLimit = 32 * 1024 * 1024;
+        var bodySizeLimit = storageOptions.BodySizeLimitMb * 1024 * 1024;
         builder.Services.Configure<FormOptions>(options =>
             options.MultipartBodyLengthLimit = bodySizeLimit);
         
