@@ -1,0 +1,20 @@
+﻿{
+  "$schema": "http://json.schemastore.org/launchsettings.json",
+  "profiles": {
+    "Storage.Api": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "OTEL_SERVICE_NAME": "Storage.Api",
+        "OTEL_EXPORTER_OTLP_ENDPOINT": "http://localhost:4318",
+        "OTEL_EXPORTER_OTLP_TIMEOUT": "10000",
+        "OTEL_EXPORTER_OTLP_PROTOCOL": "http/protobuf",
+        "OTEL_METRIC_EXPORT_INTERVAL": "15000"
+      },
+      "launchUrl": "http://localhost:8096/swagger",
+      "applicationUrl": "http://localhost:8096",
+      "Archive__InternalBaseUri": "http://localhost:8096"
+    }
+  }
+}

@@ -1,0 +1,27 @@
+<Project>
+	<PropertyGroup>
+		<TargetFramework>net8.0</TargetFramework>
+		<LangVersion>latest</LangVersion>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<!--WarningsAsErrors>nullable,CS1998,CA2211,CA1806,IDE1006,CA1305</WarningsAsErrors-->
+        <WarningsAsErrors>nullable</WarningsAsErrors>
+		<AnalysisMode>Recommended</AnalysisMode>
+		<EnableNETAnalyzers>true</EnableNETAnalyzers>
+		<EnforceCodeStyleInBuild>True</EnforceCodeStyleInBuild>
+		<NoWarn>CA1716,CA1848,CA5369,NU1900</NoWarn>
+	</PropertyGroup>
+
+    <!-- Default BUILD_BUILDNUMBER -->
+    <PropertyGroup Condition=" '$(BUILD_BUILDNUMBER)' == '' ">
+        <VersionYear>$([System.DateTime]::Now.ToString('yy'))</VersionYear>
+        <VersionDayOfYear>$([System.DateTime]::Now.DayOfYear)</VersionDayOfYear>
+        <BUILD_BUILDNUMBER>$(VersionYear)$(VersionDayOfYear).55555</BUILD_BUILDNUMBER>
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <Version>$(BUILD_BUILDNUMBER)</Version>
+        <InformationalVersion>Версия $(Version) от $([System.DateTime]::Now.ToString('g')).</InformationalVersion>
+    </PropertyGroup>
+    
+</Project>
