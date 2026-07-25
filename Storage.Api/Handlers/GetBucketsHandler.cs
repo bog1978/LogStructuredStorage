@@ -7,7 +7,7 @@ using MinimalApi.Hosting;
 namespace Storage.Api.Handlers;
 
 [UsedImplicitly]
-public class GetBucketsHandler : IEndpointHandler
+internal sealed class GetBucketsHandler : IEndpointHandler
 {
     public static IEndpointConventionBuilder[] ConfigureEndpoint(IEndpointRouteBuilder builder) =>
     [

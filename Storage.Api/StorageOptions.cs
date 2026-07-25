@@ -2,7 +2,7 @@
 
 namespace Storage.Api;
 
-public class StorageOptions : IOptionsBase
+internal sealed class StorageOptions : IOptionsBase
 {
     public static string SectionName => "StorageOptions";
 }

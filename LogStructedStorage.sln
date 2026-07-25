@@ -8,10 +8,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MinimalApi.Hosting", "Lib\M
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Storage.Api", "Storage.Api\Storage.Api.csproj", "{5C6180C7-D903-417D-93A4-99742AAE7F57}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Storage.Db.Cluster", "Storage.Db.Cluster\Storage.Db.Cluster.csproj", "{D9835C69-F44A-4836-B6C4-711390A09279}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Storage.Db.Node", "Storage.Db.Node\Storage.Db.Node.csproj", "{C7BCA5E2-8150-447F-B968-A5B97023AA5A}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -30,14 +26,6 @@ Global
 		{5C6180C7-D903-417D-93A4-99742AAE7F57}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5C6180C7-D903-417D-93A4-99742AAE7F57}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{5C6180C7-D903-417D-93A4-99742AAE7F57}.Release|Any CPU.Build.0 = Release|Any CPU
-		{D9835C69-F44A-4836-B6C4-711390A09279}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{D9835C69-F44A-4836-B6C4-711390A09279}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{D9835C69-F44A-4836-B6C4-711390A09279}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{D9835C69-F44A-4836-B6C4-711390A09279}.Release|Any CPU.Build.0 = Release|Any CPU
-		{C7BCA5E2-8150-447F-B968-A5B97023AA5A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{C7BCA5E2-8150-447F-B968-A5B97023AA5A}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{C7BCA5E2-8150-447F-B968-A5B97023AA5A}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{C7BCA5E2-8150-447F-B968-A5B97023AA5A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{D2BC7902-1E29-467F-915D-E58BDFBBE923} = {DB0D505E-998F-424F-862A-615884D51B7E}

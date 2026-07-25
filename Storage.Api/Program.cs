@@ -9,7 +9,7 @@ using OpenTelemetry.Trace;
 
 namespace Storage.Api;
 
-public class Program
+internal sealed class Program
 {
     public static async Task Main(string[] args)
     {

@@ -1,0 +1,52 @@
+{
+  "general": {
+    "output": "./Db/Cluster",
+    "overwrite": true,
+    "provider": "PostgreSQL",
+    "connection": "Host=localhost;Port=5432;Database=lss_cluster;Username=appuser;Password=apppassword;Include Error Detail=True;"
+  },
+  "dataModel": {
+    "add-associations": true,
+    "add-association-extensions": false,
+    "find-methods": [
+      "none"
+    ],
+    "partial-entities": true,
+    "include-db-info": false,
+    "context-name": "ClusterConnection",
+    "include-datatype": true,
+    "include-db-type": true,
+    "include-default-schema-name": true,
+    "association-name": {
+      "transformation": "none"
+    },
+    "entity-class-name": {
+      "case": "pascal_case",
+      "pluralization": "none",
+      "prefix": null,
+      "suffix": null,
+      "transformation": "split_by_underscore",
+      "pluralize_if_ends_with_word_only": true,
+      "ignore_all_caps": false
+    }
+  },
+  "code": {
+    "nrt": false,
+    "generated-suffix": false,
+    "namespace": "Storage.Db.Cluster"
+  },
+  "schema": {
+    "include-schemas": [
+      "public"
+    ],
+    "default-schemas": [
+      "public"
+    ],
+    "exclude-tables": [
+      /*{
+        "schema": "media",
+        "name": "segment"
+      }*/
+    ]
+  }
+}
