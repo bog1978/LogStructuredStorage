@@ -3,6 +3,7 @@
     <PropertyGroup>
         <OutputType>Exe</OutputType>
         <GenerateDocumentationFile>True</GenerateDocumentationFile>
+        <NoWarn>$(NoWarn),CS1573</NoWarn>        
     </PropertyGroup>
 
     <ItemGroup>
