@@ -15,7 +15,7 @@ internal sealed class GetBucketHandler : IEndpointHandler
     public static IEndpointConventionBuilder[] ConfigureEndpoint(IEndpointRouteBuilder builder) =>
     [
         builder
-            .MapGet("/bucket/{bucketId:int}", GetBucketsAsync)
+            .MapGet("/bucket/{bucketId}", GetBucketsAsync)
             .WithName("GetBucket")
             .WithTags("Bucket")
     ];
@@ -23,7 +23,7 @@ internal sealed class GetBucketHandler : IEndpointHandler
     /// <summary>Бакет по его ИД.</summary>
     /// <param name="bucketId">ИД бакета.</param>
     private static async Task<Ok<BucketDto>> GetBucketsAsync(
-        [FromRoute] int bucketId,
+        [FromRoute] string bucketId,
         [FromServices] ILogger<GetBucketsHandler> logger,
         [FromServices] ClusterConnection clusterConnection,
         CancellationToken token)
@@ -32,7 +32,6 @@ internal sealed class GetBucketHandler : IEndpointHandler
             .Where(x => x.BucketId == bucketId)
             .Select(x => new BucketDto(
                 x.BucketId,
-                x.BucketName,
                 x.NodeId,
                 x.Ttl))
             .SingleOrDefaultAsync(token);

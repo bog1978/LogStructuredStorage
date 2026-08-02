@@ -16,14 +16,14 @@ internal sealed class UpdateBucketHandler : IEndpointHandler
     public static IEndpointConventionBuilder[] ConfigureEndpoint(IEndpointRouteBuilder builder) =>
     [
         builder
-            .MapPatch("/bucket/{buckedId:int}", UpdateBucketsAsync)
+            .MapPatch("/bucket/{buckedId}", UpdateBucketsAsync)
             .WithName("UpdateBucket")
             .WithTags("Bucket")
     ];
 
     /// <summary>Создание нового бакета.</summary>
     private static async Task<Ok<BucketDto>> UpdateBucketsAsync(
-        [FromRoute] int buckedId,
+        [FromRoute] string buckedId,
         [FromBody] BucketPatchDto patchDto,
         [FromServices] ILogger<GetBucketsHandler> logger,
         [FromServices] ClusterConnection clusterConnection,
@@ -32,7 +32,6 @@ internal sealed class UpdateBucketHandler : IEndpointHandler
         var updatedList = await clusterConnection.Buckets
             .Where(x => x.BucketId == buckedId)
             .AsUpdatable()
-            .SetIf(patchDto.BucketName != null, x => x.BucketName, () => patchDto.BucketName)
             .SetIf(patchDto.NodeId != null, x => x.NodeId, () => patchDto.NodeId)
             .SetIf(patchDto.TimeToLive != null, x => x.Ttl, () => patchDto.TimeToLive)
             .UpdateWithOutputAsync((del, ins) => ins)
@@ -44,7 +43,6 @@ internal sealed class UpdateBucketHandler : IEndpointHandler
         return TypedResults.Ok(
             new BucketDto(
                 updated.BucketId,
-                updated.BucketName,
                 updated.NodeId,
                 updated.Ttl));
     }

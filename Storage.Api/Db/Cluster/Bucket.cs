@@ -16,10 +16,9 @@ namespace Storage.Db.Cluster
 	[Table("bucket", Schema = "public")]
 	public partial class Bucket
 	{
-		[Column("bucket_id"  , DataType  = DataType.Int32   , DbType   = "integer"    , IsPrimaryKey = true  , IsIdentity = true, SkipOnInsert = true, SkipOnUpdate = true)] public int      BucketId   { get; set; } // integer
-		[Column("bucket_name", CanBeNull = false            , DataType = DataType.Text, DbType       = "text"                                                             )] public string   BucketName { get; set; } // text
-		[Column("node_id"    , DataType  = DataType.Int32   , DbType   = "integer"                                                                                        )] public int      NodeId     { get; set; } // integer
-		[Column("ttl"        , DataType  = DataType.Interval, DbType   = "interval"                                                                                       )] public TimeSpan Ttl        { get; set; } // interval
+		[Column("bucket_id", CanBeNull = false            , DataType = DataType.NVarChar, DbType = "character varying(16)", IsPrimaryKey = true)] public string   BucketId { get; set; } // character varying(16)
+		[Column("node_id"  , CanBeNull = false            , DataType = DataType.NVarChar, DbType = "character varying(16)"                     )] public string   NodeId   { get; set; } // character varying(16)
+		[Column("ttl"      , DataType  = DataType.Interval, DbType   = "interval"                                                              )] public TimeSpan Ttl      { get; set; } // interval
 
 		#region Associations
 		/// <summary>

@@ -16,11 +16,12 @@ namespace Storage.Db.Node
 	[Table("package", Schema = "public")]
 	public partial class Package
 	{
-		[Column("package_id"  , DataType  = DataType.Int64, DbType   = "bigint"     , IsPrimaryKey = true  , IsIdentity = true, SkipOnInsert = true, SkipOnUpdate = true)] public long   PackageId   { get; set; } // bigint
-		[Column("file_path"   , CanBeNull = false         , DataType = DataType.Text, DbType       = "text"                                                             )] public string FilePath    { get; set; } // text
-		[Column("bucket_id"   , DataType  = DataType.Int32, DbType   = "integer"                                                                                        )] public int    BucketId    { get; set; } // integer
-		[Column("size"        , DataType  = DataType.Int64, DbType   = "bigint"                                                                                         )] public long   Size        { get; set; } // bigint
-		[Column("write_offset", DataType  = DataType.Int64, DbType   = "bigint"                                                                                         )] public long   WriteOffset { get; set; } // bigint
+		[Column("package_id"  , DataType  = DataType.Int64  , DbType   = "bigint"         , IsPrimaryKey = true                   , IsIdentity = true, SkipOnInsert = true, SkipOnUpdate = true)] public long   PackageId   { get; set; } // bigint
+		[Column("file_path"   , CanBeNull = false           , DataType = DataType.Text    , DbType       = "text"                                                                              )] public string FilePath    { get; set; } // text
+		[Column("bucket_id"   , CanBeNull = false           , DataType = DataType.NVarChar, DbType       = "character varying(16)"                                                             )] public string BucketId    { get; set; } // character varying(16)
+		[Column("size"        , DataType  = DataType.Int64  , DbType   = "bigint"                                                                                                              )] public long   Size        { get; set; } // bigint
+		[Column("write_offset", DataType  = DataType.Int64  , DbType   = "bigint"                                                                                                              )] public long   WriteOffset { get; set; } // bigint
+		[Column("is_closed"   , DataType  = DataType.Boolean, DbType   = "boolean"                                                                                                             )] public bool   IsClosed    { get; set; } // boolean
 
 		#region Associations
 		/// <summary>

@@ -28,7 +28,6 @@ internal sealed class GetBucketsHandler : IEndpointHandler
         var buckets = await clusterConnection.Buckets
             .Select(x => new BucketDto(
                 x.BucketId,
-                x.BucketName,
                 x.NodeId,
                 x.Ttl))
             .ToListAsync(token);

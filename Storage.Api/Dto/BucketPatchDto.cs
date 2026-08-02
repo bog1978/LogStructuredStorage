@@ -1,6 +1,5 @@
 ﻿namespace Storage.Api.Dto;
 
 internal record BucketPatchDto(
-    string? BucketName,
-    int? NodeId,
+    string? NodeId,
     TimeSpan? TimeToLive);

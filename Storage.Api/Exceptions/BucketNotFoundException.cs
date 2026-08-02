@@ -2,5 +2,5 @@
 
 namespace Storage.Api.Exceptions;
 
-internal class BucketNotFoundException(int bucketId)
+internal class BucketNotFoundException(string bucketId)
     : ResourceNotFoundException($"Бакет {bucketId} не найден.");

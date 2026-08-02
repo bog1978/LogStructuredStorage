@@ -27,7 +27,7 @@ internal sealed class CreateBucketHandler : IEndpointHandler
         CancellationToken token)
     {
         var newBucket = await clusterConnection.Buckets
-            .Value(x => x.BucketName, createDto.BucketName)
+            .Value(x => x.BucketId, createDto.BucketId)
             .Value(x => x.NodeId, createDto.NodeId)
             .Value(x => x.Ttl, createDto.TimeToLive)
             .InsertWithOutputAsync(token);
@@ -35,7 +35,6 @@ internal sealed class CreateBucketHandler : IEndpointHandler
             $"/bucket/{newBucket.BucketId}",
             new BucketDto(
                 newBucket.BucketId,
-                newBucket.BucketName,
                 newBucket.NodeId,
                 newBucket.Ttl));
     }

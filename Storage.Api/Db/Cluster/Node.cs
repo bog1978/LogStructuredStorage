@@ -16,9 +16,8 @@ namespace Storage.Db.Cluster
 	[Table("node", Schema = "public")]
 	public partial class Node
 	{
-		[Column("node_id"  , DataType  = DataType.Int32, DbType   = "integer"    , IsPrimaryKey = true  , IsIdentity = true, SkipOnInsert = true, SkipOnUpdate = true)] public int    NodeId   { get; set; } // integer
-		[Column("node_name", CanBeNull = false         , DataType = DataType.Text, DbType       = "text"                                                             )] public string NodeName { get; set; } // text
-		[Column("host_name", CanBeNull = false         , DataType = DataType.Text, DbType       = "text"                                                             )] public string HostName { get; set; } // text
+		[Column("node_id"  , CanBeNull = false, DataType = DataType.NVarChar, DbType = "character varying(16)", IsPrimaryKey = true)] public string NodeId   { get; set; } // character varying(16)
+		[Column("host_name", CanBeNull = false, DataType = DataType.Text    , DbType = "text"                                      )] public string HostName { get; set; } // text
 
 		#region Associations
 		/// <summary>

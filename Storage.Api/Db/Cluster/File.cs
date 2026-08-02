@@ -15,10 +15,10 @@ namespace Storage.Db.Cluster
 	[Table("file", Schema = "public")]
 	public partial class File
 	{
-		[Column("file_id"  , DataType  = DataType.Int64, DbType   = "bigint"     , IsPrimaryKey = true  , IsIdentity = true, SkipOnInsert = true, SkipOnUpdate = true)] public long   FileId   { get; set; } // bigint
-		[Column("file_name", CanBeNull = false         , DataType = DataType.Text, DbType       = "text"                                                             )] public string FileName { get; set; } // text
-		[Column("bucket_id", DataType  = DataType.Int32, DbType   = "integer"                                                                                        )] public int    BucketId { get; set; } // integer
-		[Column("node_id"  , DataType  = DataType.Int32, DbType   = "integer"                                                                                        )] public int    NodeId   { get; set; } // integer
+		[Column("file_id"  , DataType  = DataType.Int64, DbType   = "bigint"         , IsPrimaryKey = true                   , IsIdentity = true, SkipOnInsert = true, SkipOnUpdate = true)] public long   FileId   { get; set; } // bigint
+		[Column("file_name", CanBeNull = false         , DataType = DataType.Text    , DbType       = "text"                                                                              )] public string FileName { get; set; } // text
+		[Column("bucket_id", CanBeNull = false         , DataType = DataType.NVarChar, DbType       = "character varying(16)"                                                             )] public string BucketId { get; set; } // character varying(16)
+		[Column("node_id"  , CanBeNull = false         , DataType = DataType.NVarChar, DbType       = "character varying(16)"                                                             )] public string NodeId   { get; set; } // character varying(16)
 
 		#region Associations
 		/// <summary>
