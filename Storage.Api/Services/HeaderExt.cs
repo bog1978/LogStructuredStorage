@@ -1,4 +1,6 @@
-﻿namespace Storage.Api.Services;
+﻿using System.Text;
+
+namespace Storage.Api.Services;
 
 internal static class HeaderExt
 {
@@ -6,7 +8,7 @@ internal static class HeaderExt
 
     public static PartHeader ReadHeader(this Stream stream)
     {
-        using var reader = new BinaryReader(stream);
+        using var reader = new BinaryReader(stream, Encoding.UTF8, true);
         return new PartHeader(
             reader.ReadInt32(),
             reader.ReadInt64(),
