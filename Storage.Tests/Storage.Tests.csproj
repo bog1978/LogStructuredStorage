@@ -22,7 +22,11 @@
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\Storage.Api\Storage.Api.csproj" />
+        <InternalsVisibleTo Include="Storage.Tests"/>
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\Storage.Node\Storage.Node.csproj" />
     </ItemGroup>
 
 </Project>

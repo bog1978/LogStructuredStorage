@@ -1,6 +1,6 @@
 ﻿using System.Text;
 
-namespace Storage.Api.Services;
+namespace Storage.Node;
 
 internal sealed class PartStorage : IDisposable
 {

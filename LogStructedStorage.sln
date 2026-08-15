@@ -10,6 +10,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Storage.Api", "Storage.Api\
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Storage.Tests", "Storage.Tests\Storage.Tests.csproj", "{98E791BE-16DD-40D8-AA1C-F335578F38ED}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Storage.Node", "Storage.Node\Storage.Node.csproj", "{309436E4-A4E6-4FA9-B331-BFACB67B3E26}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -32,6 +34,10 @@ Global
 		{98E791BE-16DD-40D8-AA1C-F335578F38ED}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{98E791BE-16DD-40D8-AA1C-F335578F38ED}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{98E791BE-16DD-40D8-AA1C-F335578F38ED}.Release|Any CPU.Build.0 = Release|Any CPU
+		{309436E4-A4E6-4FA9-B331-BFACB67B3E26}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{309436E4-A4E6-4FA9-B331-BFACB67B3E26}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{309436E4-A4E6-4FA9-B331-BFACB67B3E26}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{309436E4-A4E6-4FA9-B331-BFACB67B3E26}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{D2BC7902-1E29-467F-915D-E58BDFBBE923} = {DB0D505E-998F-424F-862A-615884D51B7E}

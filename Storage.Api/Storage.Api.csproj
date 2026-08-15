@@ -26,15 +26,12 @@
 
     <ItemGroup>
         <ProjectReference Include="..\Lib\MinimalApi.Hosting\MinimalApi.Hosting.csproj"/>
+        <ProjectReference Include="..\Storage.Node\Storage.Node.csproj" />
     </ItemGroup>
 
     <ItemGroup>
         <None Include="linq2db_node.json"/>
         <None Include="linq2db_cluster.json"/>
-    </ItemGroup>
-
-    <ItemGroup>
-        <InternalsVisibleTo Include="Storage.Tests"/>
     </ItemGroup>
 
 </Project>

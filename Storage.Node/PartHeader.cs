@@ -1,4 +1,4 @@
-﻿namespace Storage.Api.Services;
+﻿namespace Storage.Node;
 
 internal record PartHeader(
     int PartNumber,
