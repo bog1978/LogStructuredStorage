@@ -4,7 +4,7 @@ namespace Storage.Node;
 
 internal sealed class PartStorage : IDisposable
 {
-    private readonly BinaryWriter? _writer;
+    private BinaryWriter? _writer;
     private readonly ReaderWriterLockSlim _lock = new();
     private PartHeader _partHeader;
 
@@ -25,18 +25,20 @@ internal sealed class PartStorage : IDisposable
     public PartStorage(string rootPath, int partNumber, int partSize)
     {
         PartNumber = partNumber;
+        if(!Directory.Exists(rootPath))
+            Directory.CreateDirectory(rootPath);
         PartPath = Path.Combine(rootPath, $"{partNumber:00000000}.lss");
         var stream = new FileStream(PartPath, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.ReadWrite);
         stream.SetLength(partSize);
-        _writer = new BinaryWriter(stream, Encoding.UTF8, true);
-        var now = DateTimeOffset.UtcNow;
-        _partHeader = new PartHeader(partNumber, HeaderExt.Size, now, now);
-        _writer.CreateHeader(_partHeader);
+        _writer = new BinaryWriter(stream);
+        _partHeader = _writer.CreateHeader(partNumber);
     }
 
     public int PartNumber { get; }
 
     public string PartPath { get; }
+    
+    public bool CanWrite => _writer != null;
 
     public bool TryWrite(byte[] data, out long offset)
     {
@@ -48,7 +50,8 @@ internal sealed class PartStorage : IDisposable
             if (_writer.BaseStream.Length < _writer.BaseStream.Position + sizeof(int) + data.Length)
             {
                 _partHeader = _writer.ClosePart(_partHeader);
-                offset = 0;
+                offset = -1;
+                Close();
                 return false;
             }
 
@@ -82,8 +85,15 @@ internal sealed class PartStorage : IDisposable
         }
     }
 
+    public void Close()
+    {
+        _writer?.Dispose();
+        _writer = null;
+    }
+
     public void Dispose()
     {
+        Close();
         _writer?.Dispose();
         _lock.Dispose();
     }

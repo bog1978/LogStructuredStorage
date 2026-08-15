@@ -4,21 +4,20 @@ namespace Storage.Node;
 
 internal static class HeaderExt
 {
-    public static long Size => sizeof(int) + sizeof(long) * 3;
+    private static long Size => sizeof(int) + sizeof(long) * 3;
 
     public static PartHeader ReadHeader(this Stream stream)
     {
         using var reader = new BinaryReader(stream, Encoding.UTF8, true);
-        return new PartHeader(
-            reader.ReadInt32(),
-            reader.ReadInt64(),
-            DateTimeOffset.FromUnixTimeSeconds(reader.ReadInt64()),
-            DateTimeOffset.FromUnixTimeSeconds(reader.ReadInt64()));
+        return reader.ReadHeader();
     }
 
-    public static void CreateHeader(this BinaryWriter writer, PartHeader header)
+    public static PartHeader CreateHeader(this BinaryWriter writer, int partNumber)
     {
-        Write(writer, header);
+        var now = DateTimeOffset.UtcNow;
+        var header = new PartHeader(partNumber, Size, now, now);        
+        writer.WriteHeader(header);
+        return header;
     }
 
     public static PartHeader ClosePart(this BinaryWriter writer, PartHeader header)
@@ -39,16 +38,29 @@ internal static class HeaderExt
     {
         var position = writer.BaseStream.Position;
         writer.BaseStream.Position = 0;
-        Write(writer, header);
+        WriteHeader(writer, header);
         writer.BaseStream.Position = position;
     }
 
-    private static void Write(this BinaryWriter writer, PartHeader header)
+    private static void WriteHeader(this BinaryWriter writer, PartHeader header)
     {
         writer.Write(header.PartNumber);
-        writer.Write(header.WritePosition);
         writer.Write(header.MinTime.ToUnixTimeSeconds());
         writer.Write(header.MaxTime.ToUnixTimeSeconds());
+        writer.Write(header.WritePosition);
         writer.Flush();
+    }
+    
+    private static PartHeader ReadHeader(this BinaryReader reader)
+    {
+        var partNumber = reader.ReadInt32();
+        var minTime = reader.ReadInt64();
+        var maxTime = reader.ReadInt64();
+        var writePosition = reader.ReadInt64();
+        return new PartHeader(
+            partNumber,
+            writePosition,
+            DateTimeOffset.FromUnixTimeSeconds(minTime),
+            DateTimeOffset.FromUnixTimeSeconds(maxTime));
     }
 }

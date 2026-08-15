@@ -5,7 +5,7 @@ namespace Storage.Tests;
 
 public class PartStorageTests
 {
-    private const string RootPath = @"E:\\Share\lss";
+    private const string RootPath = @"E:\\Share\lss\part";
 
     [OneTimeSetUp]
     public void Setup()
@@ -14,14 +14,25 @@ public class PartStorageTests
             Directory.Delete(RootPath, true);
         Directory.CreateDirectory(RootPath);
     }
+    
+    [OneTimeTearDown]
+    public void Cleanup()
+    {
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+        GC.Collect();
+        if (Directory.Exists(RootPath))
+            Directory.Delete(RootPath, true);
+    }
 
     [Test]
     public void GenericTest()
     {
+        var rootPath = $"{RootPath}\\test1";
         var offsetList = new List<(long Len, string Hash)>();
 
         string partPath;
-        using (var ps0 = new PartStorage(RootPath, 0, 100_000_000))
+        using (var ps0 = new PartStorage(rootPath, 0, 100_000_000))
         {
             partPath = ps0.PartPath;
             for (var i = 0; i < 10; i++)
@@ -64,8 +75,10 @@ public class PartStorageTests
     [Test]
     public void ReadOnlyTest()
     {
+        var rootPath = $"{RootPath}\\test2";
+
         string partPath;
-        using (var ps0 = new PartStorage(RootPath, 1, 100_000_000))
+        using (var ps0 = new PartStorage(rootPath, 1, 100_000_000))
         {
             partPath = ps0.PartPath;
             while (true)
