@@ -5,7 +5,7 @@ using Storage.Db.Cluster;
 
 namespace Storage.Api.Services;
 
-internal class NodeInitializer(ClusterConnection clusterConnection, IOptions<StorageOptions> options)
+internal sealed class NodeInitializer(ClusterConnection clusterConnection, IOptions<StorageOptions> options)
 {
     private readonly StorageOptions _options = options.Value;
 

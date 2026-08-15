@@ -1,6 +1,6 @@
 ﻿namespace Storage.Api.Dto;
 
-internal record BucketDto(
+internal sealed record BucketDto(
     string BucketId,
     string NodeId,
     TimeSpan TimeToLive);
