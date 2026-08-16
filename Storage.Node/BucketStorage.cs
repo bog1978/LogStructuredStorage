@@ -2,6 +2,7 @@
 
 internal sealed class BucketStorage : IDisposable
 {
+    private readonly string _bucketName;
     private readonly int _partSize;
     private readonly string _bucketDir;
     private readonly Dictionary<int, PartStorage> _parts = new();
@@ -9,6 +10,7 @@ internal sealed class BucketStorage : IDisposable
 
     public BucketStorage(string rootDir, string bucketName, int partSize)
     {
+        _bucketName = bucketName;
         _partSize = partSize;
         _bucketDir = Path.Combine(rootDir, bucketName);
         if (!Directory.Exists(_bucketDir))
@@ -33,7 +35,7 @@ internal sealed class BucketStorage : IDisposable
     public DataLocation Write(byte[] data)
     {
         if (_partStorage.TryWrite(data, out var offset))
-            return new(_partStorage.PartNumber, offset);
+            return new(_bucketName, _partStorage.PartNumber, offset);
 
         _partStorage.Close();
         _parts.Add(_partStorage.PartNumber, _partStorage);
@@ -41,7 +43,7 @@ internal sealed class BucketStorage : IDisposable
         _partStorage = new PartStorage(_bucketDir, nextPartNumber, _partSize);
         return !_partStorage.TryWrite(data, out offset)
             ? throw new InvalidOperationException("Failed to write data")
-            : new(_partStorage.PartNumber, offset);
+            : new(_bucketName, _partStorage.PartNumber, offset);
     }
 
     public byte[] Read(DataLocation location) =>
