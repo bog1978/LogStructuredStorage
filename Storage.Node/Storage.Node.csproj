@@ -10,4 +10,14 @@
         <InternalsVisibleTo Include="Storage.Tests"/>
     </ItemGroup>
 
+    <ItemGroup>
+        <ProjectReference Include="..\Lib\MinimalApi.Hosting.Abstractions\MinimalApi.Hosting.Abstractions.csproj"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Update="appsettings.json">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
+    </ItemGroup>
+
 </Project>

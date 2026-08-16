@@ -25,7 +25,7 @@ internal sealed class PartStorage : IDisposable
     public PartStorage(string rootPath, int partNumber, int partSize)
     {
         PartNumber = partNumber;
-        if(!Directory.Exists(rootPath))
+        if (!Directory.Exists(rootPath))
             Directory.CreateDirectory(rootPath);
         PartPath = Path.Combine(rootPath, $"{partNumber:00000000}.lss");
         var stream = new FileStream(PartPath, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.ReadWrite);
@@ -37,7 +37,7 @@ internal sealed class PartStorage : IDisposable
     public int PartNumber { get; }
 
     public string PartPath { get; }
-    
+
     public bool CanWrite => _writer != null;
 
     public bool TryWrite(byte[] data, out long offset)
@@ -85,10 +85,27 @@ internal sealed class PartStorage : IDisposable
         }
     }
 
+    public void DeleteAll()
+    {
+        try
+        {
+            _lock.EnterWriteLock();
+            Close();
+            File.Delete(PartPath);
+        }
+        finally
+        {
+            _lock.ExitWriteLock();
+        }
+    }
+
     public void Close()
     {
         _writer?.Dispose();
         _writer = null;
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+        GC.Collect();
     }
 
     public void Dispose()

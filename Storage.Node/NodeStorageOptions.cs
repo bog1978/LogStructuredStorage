@@ -1,0 +1,15 @@
+﻿using System.ComponentModel.DataAnnotations;
+using MinimalApi.Hosting.Options;
+
+namespace Storage.Node;
+
+public class NodeStorageOptions : IOptionsBase
+{
+    public static string SectionName => "NodeStorage";
+    
+    [Required(AllowEmptyStrings = false)]
+    public string RootPath { get; set; } = string.Empty;
+
+    [Required, Range(1024 * 1024 * 100, 1024 * 1024 * 1024)]
+    public int PartSize { get; set; } = 1024 * 1024 * 100;
+}

@@ -1,6 +1,6 @@
 ﻿namespace Storage.Node;
 
-internal sealed class BucketStorage : IDisposable
+internal sealed class BucketStorage : IBucketStorage
 {
     private readonly string _bucketName;
     private readonly int _partSize;
@@ -29,7 +29,14 @@ internal sealed class BucketStorage : IDisposable
             }
         }
 
-        _partStorage ??= new PartStorage(_bucketDir, 0, partSize);
+        if (_partStorage == null)
+        {
+            var nextPartNumber = _parts.Keys.Count > 0
+                ? _parts.Keys.Max() + 1
+                : 0;
+            _partStorage = new PartStorage(_bucketDir, nextPartNumber, partSize);
+            _parts.Add(nextPartNumber, _partStorage);
+        }
     }
 
     public DataLocation Write(byte[] data)
@@ -38,9 +45,9 @@ internal sealed class BucketStorage : IDisposable
             return new(_bucketName, _partStorage.PartNumber, offset);
 
         _partStorage.Close();
-        _parts.Add(_partStorage.PartNumber, _partStorage);
         var nextPartNumber = _partStorage.PartNumber + 1;
         _partStorage = new PartStorage(_bucketDir, nextPartNumber, _partSize);
+        _parts.Add(nextPartNumber, _partStorage);
         return !_partStorage.TryWrite(data, out offset)
             ? throw new InvalidOperationException("Failed to write data")
             : new(_bucketName, _partStorage.PartNumber, offset);
@@ -51,9 +58,18 @@ internal sealed class BucketStorage : IDisposable
             ? part.Read(location.Offset)
             : throw new InvalidOperationException($"Part {location.PartNumber} not found");
 
+    public void DeleteAll()
+    {
+        foreach (var part in _parts.Values)
+            part.DeleteAll();
+        _parts.Clear();
+        if (Directory.Exists(_bucketDir))
+            Directory.Delete(_bucketDir, true);
+    }
+
     public void Dispose()
     {
-        foreach (var (k, v) in _parts)
-            v.Dispose();
+        foreach (var part in _parts.Values)
+            part.Dispose();
     }
 }
