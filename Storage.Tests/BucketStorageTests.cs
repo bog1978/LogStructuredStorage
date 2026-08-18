@@ -5,7 +5,7 @@ namespace Storage.Tests;
 
 public class BucketStorageTests
 {
-    private const string RootPath = @"E:\\Share\lss\bucket";
+    private const string RootPath = @"D:\\Share\lss\bucket";
     private const string BucketName = "test_bucket";
 
     [OneTimeSetUp]

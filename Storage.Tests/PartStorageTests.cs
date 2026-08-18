@@ -5,7 +5,7 @@ namespace Storage.Tests;
 
 public class PartStorageTests
 {
-    private const string RootPath = @"E:\\Share\lss\part";
+    private const string RootPath = @"D:\\Share\lss\part";
 
     [OneTimeSetUp]
     public void Setup()
