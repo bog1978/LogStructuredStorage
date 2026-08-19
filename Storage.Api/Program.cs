@@ -1,5 +1,5 @@
 using Microsoft.AspNetCore.Http.Features;
-using Microsoft.OpenApi.Models;
+using Microsoft.OpenApi;
 using MinimalApi.Hosting;
 using MinimalApi.Hosting.Options;
 using Npgsql;

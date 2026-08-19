@@ -3,6 +3,9 @@
     <Project Path="Lib/MinimalApi.Hosting.Abstractions/MinimalApi.Hosting.Abstractions.csproj" />
     <Project Path="Lib/MinimalApi.Hosting/MinimalApi.Hosting.csproj" />
   </Folder>
+  <Folder Name="/Solution Items/">
+    <File Path="Directory.Build.props" />
+  </Folder>
   <Project Path="Storage.Api/Storage.Api.csproj" />
   <Project Path="Storage.Node/Storage.Node.csproj" />
   <Project Path="Storage.Tests/Storage.Tests.csproj" />
