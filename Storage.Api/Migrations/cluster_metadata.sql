@@ -24,7 +24,9 @@ CREATE TABLE file (
   file_id BIGSERIAL PRIMARY KEY,
   file_name TEXT NOT NULL, -- Имя файла
   bucket_id VARCHAR(16) NOT NULL, -- ИД корзины
-  node_id VARCHAR(16) NOT NULL REFERENCES node(node_id) -- ИД узла, на котором реально лежит файл.
+  node_id VARCHAR(16) NOT NULL REFERENCES node(node_id), -- ИД узла, на котором реально лежит файл.
+  "offset" BIGINT NOT NULL, -- Смещение в файле
+  part_id INT NOT NULL -- ИД части файла  
 );
 
 -- Один и тот же файл может находиться

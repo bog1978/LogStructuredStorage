@@ -3,7 +3,7 @@ using Microsoft.Extensions.Options;
 
 namespace Storage.Node;
 
-public sealed class NodeStorage : INodeStorage
+internal sealed class NodeStorage : INodeStorage
 {
     private readonly NodeStorageOptions _options;
 

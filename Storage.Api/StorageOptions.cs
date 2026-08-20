@@ -17,11 +17,5 @@ internal sealed class StorageOptions : IOptionsBase
     public int BodySizeLimitMb { get; set; }
 
     [Required(AllowEmptyStrings = false), MinLength(5)]
-    public string NodeName { get; set; } = string.Empty;
-    
-    [Required(AllowEmptyStrings = false)]
-    public string BucketRootPath { get;set; } = string.Empty;
-
-    [Range(128, 1024)]
-    public int BucketPartSizeMb { get; set; }
+    public string NodeId { get; set; } = string.Empty;
 }

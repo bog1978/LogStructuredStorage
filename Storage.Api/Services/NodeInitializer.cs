@@ -12,12 +12,12 @@ internal sealed class NodeInitializer(ClusterConnection clusterConnection, IOpti
     public async Task InitializeAsync(CancellationToken token)
     {
         var node = await clusterConnection.Nodes
-            .Where(x => x.NodeId == _options.NodeName)
+            .Where(x => x.NodeId == _options.NodeId)
             .SingleOrDefaultAsync(token);
 
         if (node == null)
             await clusterConnection.Nodes
-                .Value(x => x.NodeId, _options.NodeName)
+                .Value(x => x.NodeId, _options.NodeId)
                 .Value(x => x.HostName, "localhost")
                 .InsertAsync(token);
     }

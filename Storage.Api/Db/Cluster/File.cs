@@ -19,6 +19,8 @@ namespace Storage.Db.Cluster
 		[Column("file_name", CanBeNull = false         , DataType = DataType.Text    , DbType       = "text"                                                                              )] public string FileName { get; set; } // text
 		[Column("bucket_id", CanBeNull = false         , DataType = DataType.NVarChar, DbType       = "character varying(16)"                                                             )] public string BucketId { get; set; } // character varying(16)
 		[Column("node_id"  , CanBeNull = false         , DataType = DataType.NVarChar, DbType       = "character varying(16)"                                                             )] public string NodeId   { get; set; } // character varying(16)
+		[Column("offset"   , DataType  = DataType.Int64, DbType   = "bigint"                                                                                                              )] public long   Offset   { get; set; } // bigint
+		[Column("part_id"  , DataType  = DataType.Int32, DbType   = "integer"                                                                                                             )] public int    PartId   { get; set; } // integer
 
 		#region Associations
 		/// <summary>

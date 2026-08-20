@@ -8,6 +8,7 @@ using OpenTelemetry.Metrics;
 using OpenTelemetry.Trace;
 using Storage.Api.Db;
 using Storage.Api.Services;
+using Storage.Node;
 
 namespace Storage.Api;
 
@@ -61,6 +62,12 @@ internal sealed class Program
             .AddStorage(builder.Configuration)
             .AddApiHandlers()
             .AddTransient<NodeInitializer>()
+            .AddNodeStorage(builder.Configuration)
+            .AddCors(options => options
+                .AddPolicy("all", policy => policy
+                    .AllowAnyOrigin()
+                    .AllowAnyHeader()
+                    .AllowAnyMethod()))
             .AddHealthChecks();
 
         // Лимит для multipart/form-data из настройки
