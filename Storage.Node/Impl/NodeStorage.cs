@@ -5,11 +5,11 @@ namespace Storage.Node;
 
 internal sealed class NodeStorage : INodeStorage
 {
-    private readonly NodeStorageOptions _options;
+    private readonly StorageOptions _options;
 
     private readonly ConcurrentDictionary<string, BucketStorage> _bucketMap = new();
 
-    public NodeStorage(IOptions<NodeStorageOptions> options)
+    public NodeStorage(IOptions<StorageOptions> options)
     {
         _options = options.Value;
         LoadBuckets();

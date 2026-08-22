@@ -5,9 +5,9 @@ using Storage.Db.Cluster;
 
 namespace Storage.Api.Services;
 
-internal sealed class NodeInitializer(ClusterConnection clusterConnection, IOptions<StorageOptions> options)
+internal sealed class NodeInitializer(ClusterConnection clusterConnection, IOptions<ApiOptions> options)
 {
-    private readonly StorageOptions _options = options.Value;
+    private readonly ApiOptions _options = options.Value;
 
     public async Task InitializeAsync(CancellationToken token)
     {

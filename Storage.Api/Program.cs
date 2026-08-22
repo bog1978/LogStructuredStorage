@@ -34,8 +34,8 @@ internal sealed class Program
                 .AddProcessInstrumentation());
 
         // Настройка конфигурации
-        builder.Services.BindOptions<StorageOptions>(builder.Configuration);
-        var storageOptions = builder.Configuration.GetOptions<StorageOptions>();
+        builder.Services.BindOptions<ApiOptions>(builder.Configuration);
+        var storageOptions = builder.Configuration.GetOptions<ApiOptions>();
 
         // Настройка Swagger
         builder.Services.AddEndpointsApiExplorer();

@@ -30,7 +30,7 @@ internal class UploadFileHandler : IEndpointHandler
         [FromRoute] string bucketId,
         [FromRoute] string filePath,
         [FromForm] IFormFile formFile,
-        [FromServices] IOptions<StorageOptions> options,
+        [FromServices] IOptions<ApiOptions> options,
         [FromServices] ILogger<GetBucketsHandler> logger,
         [FromServices] ClusterConnection clusterConnection,
         [FromServices] INodeStorage nodeStorage,

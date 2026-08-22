@@ -2,7 +2,6 @@
 using LinqToDB.Data;
 using MinimalApi.Hosting.Options;
 using Storage.Db.Cluster;
-using Storage.Db.Node;
 
 namespace Storage.Api.Db;
 
@@ -10,10 +9,9 @@ internal static class DbExtensions
 {
     internal static IServiceCollection AddStorage(this IServiceCollection services, IConfiguration configuration)
     {
-        var options = configuration.GetOptions<StorageOptions>();
+        var options = configuration.GetOptions<ApiOptions>();
         return services
-            .AddStorage<ClusterConnection>(options.ClusterConnectionString)
-            .AddStorage<NodeConnection>(options.NodeConnectionString);
+            .AddStorage<ClusterConnection>(options.ClusterConnectionString);
     }
 
     private static IServiceCollection AddStorage<TStorage>(this IServiceCollection services, string connectionString)

@@ -3,16 +3,13 @@ using MinimalApi.Hosting.Options;
 
 namespace Storage.Api;
 
-internal sealed class StorageOptions : IOptionsBase
+internal sealed class ApiOptions : IOptionsBase
 {
-    public static string SectionName => "StorageOptions";
+    public static string SectionName => nameof(ApiOptions);
 
     [Required(AllowEmptyStrings = false)] 
     public string ClusterConnectionString { get; set; } = string.Empty;
     
-    [Required(AllowEmptyStrings = false)]
-    public string NodeConnectionString { get; set; } = string.Empty;
-
     [Range(1, 256)]
     public int BodySizeLimitMb { get; set; }
 

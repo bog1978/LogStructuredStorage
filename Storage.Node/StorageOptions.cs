@@ -3,9 +3,9 @@ using MinimalApi.Hosting.Options;
 
 namespace Storage.Node;
 
-public class NodeStorageOptions : IOptionsBase
+public class StorageOptions : IOptionsBase
 {
-    public static string SectionName => "NodeStorage";
+    public static string SectionName => nameof(StorageOptions);
     
     [Required(AllowEmptyStrings = false)]
     public string RootPath { get; set; } = string.Empty;

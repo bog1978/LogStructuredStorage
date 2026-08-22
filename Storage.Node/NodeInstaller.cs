@@ -8,6 +8,6 @@ public static class NodeInstaller
 {
     public static IServiceCollection AddNodeStorage(this IServiceCollection services, IConfigurationRoot configuration) =>
         services
-            .BindOptions<NodeStorageOptions>(configuration)
+            .BindOptions<StorageOptions>(configuration)
             .AddSingleton<INodeStorage, NodeStorage>();
 }

@@ -30,7 +30,7 @@ internal class DownloadFileHandler : IEndpointHandler
     private static async Task<FileStreamHttpResult> DownloadFileAsync(
         [FromRoute] string bucketId,
         [FromRoute] string filePath,
-        [FromServices] IOptions<StorageOptions> options,
+        [FromServices] IOptions<ApiOptions> options,
         [FromServices] ILogger<GetBucketsHandler> logger,
         [FromServices] ClusterConnection clusterConnection,
         [FromServices] INodeStorage nodeStorage,
