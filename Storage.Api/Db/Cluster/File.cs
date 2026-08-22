@@ -7,6 +7,7 @@
 
 using LinqToDB;
 using LinqToDB.Mapping;
+using System;
 
 #pragma warning disable 1573, 1591
 
@@ -15,12 +16,14 @@ namespace Storage.Db.Cluster
 	[Table("file", Schema = "public")]
 	public partial class File
 	{
-		[Column("file_id"  , DataType  = DataType.Int64, DbType   = "bigint"         , IsPrimaryKey = true                   , IsIdentity = true, SkipOnInsert = true, SkipOnUpdate = true)] public long   FileId   { get; set; } // bigint
-		[Column("file_name", CanBeNull = false         , DataType = DataType.Text    , DbType       = "text"                                                                              )] public string FileName { get; set; } // text
-		[Column("bucket_id", CanBeNull = false         , DataType = DataType.NVarChar, DbType       = "character varying(16)"                                                             )] public string BucketId { get; set; } // character varying(16)
-		[Column("node_id"  , CanBeNull = false         , DataType = DataType.NVarChar, DbType       = "character varying(16)"                                                             )] public string NodeId   { get; set; } // character varying(16)
-		[Column("offset"   , DataType  = DataType.Int64, DbType   = "bigint"                                                                                                              )] public long   Offset   { get; set; } // bigint
-		[Column("part_id"  , DataType  = DataType.Int32, DbType   = "integer"                                                                                                             )] public int    PartId   { get; set; } // integer
+		[Column("file_id"    , DataType  = DataType.Int64         , DbType   = "bigint"                      , IsPrimaryKey = true                   , IsIdentity = true, SkipOnInsert = true, SkipOnUpdate = true)] public long           FileId     { get; set; } // bigint
+		[Column("file_name"  , CanBeNull = false                  , DataType = DataType.Text                 , DbType       = "text"                                                                              )] public string         FileName   { get; set; } // text
+		[Column("file_size"  , DataType  = DataType.Int64         , DbType   = "bigint"                                                                                                                           )] public long           FileSize   { get; set; } // bigint
+		[Column("bucket_id"  , CanBeNull = false                  , DataType = DataType.NVarChar             , DbType       = "character varying(16)"                                                             )] public string         BucketId   { get; set; } // character varying(16)
+		[Column("node_id"    , CanBeNull = false                  , DataType = DataType.NVarChar             , DbType       = "character varying(16)"                                                             )] public string         NodeId     { get; set; } // character varying(16)
+		[Column("part_id"    , DataType  = DataType.Int32         , DbType   = "integer"                                                                                                                          )] public int            PartId     { get; set; } // integer
+		[Column("part_offset", DataType  = DataType.Int64         , DbType   = "bigint"                                                                                                                           )] public long           PartOffset { get; set; } // bigint
+		[Column("created_at" , DataType  = DataType.DateTimeOffset, DbType   = "timestamp (6) with time zone"                                                                                                     )] public DateTimeOffset CreatedAt  { get; set; } // timestamp (6) with time zone
 
 		#region Associations
 		/// <summary>

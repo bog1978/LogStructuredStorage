@@ -1,6 +1,6 @@
 ﻿namespace Storage.Api.Dto;
 
-public record FileDto(
+internal sealed record FileDto(
     string FileName,
-    string BucketId,
-    string NodeId);
+    long FileSize,
+    DateTimeOffset CreatedAt);

@@ -8,7 +8,7 @@ using Storage.Api.Dto;
 using Storage.Api.Exceptions;
 using Storage.Db.Cluster;
 
-namespace Storage.Api.Handlers.Bucket;
+namespace Storage.Api.Handlers.Metadata;
 
 [UsedImplicitly]
 internal sealed class UpdateBucketHandler : IEndpointHandler
@@ -18,10 +18,12 @@ internal sealed class UpdateBucketHandler : IEndpointHandler
         builder
             .MapPatch("/bucket/{buckedId}", UpdateBucketsAsync)
             .WithName("UpdateBucket")
-            .WithTags("Bucket")
+            .WithTags("Metadata")
     ];
 
-    /// <summary>Создание нового бакета.</summary>
+    /// <summary>Изменение параметров корзины.</summary>
+    /// <param name="buckedId">Идентификатор корзины.</param>
+    /// <param name="patchDto">Новые параметры корзины.</param>
     private static async Task<Ok<BucketDto>> UpdateBucketsAsync(
         [FromRoute] string buckedId,
         [FromBody] BucketPatchDto patchDto,
@@ -40,10 +42,6 @@ internal sealed class UpdateBucketHandler : IEndpointHandler
         var updated = updatedList.SingleOrDefault()
                       ?? throw new BucketNotFoundException(buckedId);
         
-        return TypedResults.Ok(
-            new BucketDto(
-                updated.BucketId,
-                updated.NodeId,
-                updated.Ttl));
+        return TypedResults.Ok(updated.ToDto());
     }
 }

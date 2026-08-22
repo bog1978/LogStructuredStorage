@@ -7,7 +7,7 @@ using Storage.Api.Dto;
 using Storage.Api.Exceptions;
 using Storage.Db.Cluster;
 
-namespace Storage.Api.Handlers.Bucket;
+namespace Storage.Api.Handlers.Metadata;
 
 [UsedImplicitly]
 internal sealed class GetBucketHandler : IEndpointHandler
@@ -17,11 +17,11 @@ internal sealed class GetBucketHandler : IEndpointHandler
         builder
             .MapGet("/bucket/{bucketId}", GetBucketsAsync)
             .WithName("GetBucket")
-            .WithTags("Bucket")
+            .WithTags("Metadata")
     ];
 
-    /// <summary>Бакет по его ИД.</summary>
-    /// <param name="bucketId">ИД бакета.</param>
+    /// <summary>Запрос корзины по её ИД.</summary>
+    /// <param name="bucketId">ИД корзины.</param>
     private static async Task<Ok<BucketDto>> GetBucketsAsync(
         [FromRoute] string bucketId,
         [FromServices] ILogger<GetBucketsHandler> logger,
@@ -30,10 +30,7 @@ internal sealed class GetBucketHandler : IEndpointHandler
     {
         var bucket = await clusterConnection.Buckets
             .Where(x => x.BucketId == bucketId)
-            .Select(x => new BucketDto(
-                x.BucketId,
-                x.NodeId,
-                x.Ttl))
+            .Select(x => x.ToDto())
             .SingleOrDefaultAsync(token);
         return bucket != null
             ? TypedResults.Ok(bucket)

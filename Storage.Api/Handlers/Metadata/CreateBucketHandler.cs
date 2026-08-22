@@ -6,7 +6,7 @@ using MinimalApi.Hosting;
 using Storage.Api.Dto;
 using Storage.Db.Cluster;
 
-namespace Storage.Api.Handlers.Bucket;
+namespace Storage.Api.Handlers.Metadata;
 
 [UsedImplicitly]
 internal sealed class CreateBucketHandler : IEndpointHandler
@@ -16,10 +16,10 @@ internal sealed class CreateBucketHandler : IEndpointHandler
         builder
             .MapPost("/bucket/", GetBucketsAsync)
             .WithName("CreateBucket")
-            .WithTags("Bucket")
+            .WithTags("Metadata")
     ];
 
-    /// <summary>Создание нового бакета.</summary>
+    /// <summary>Создание новой корзины.</summary>
     private static async Task<Created<BucketDto>> GetBucketsAsync(
         [FromBody] BucketCreateDto createDto,
         [FromServices] ILogger<GetBucketsHandler> logger,
@@ -31,11 +31,6 @@ internal sealed class CreateBucketHandler : IEndpointHandler
             .Value(x => x.NodeId, createDto.NodeId)
             .Value(x => x.Ttl, createDto.TimeToLive)
             .InsertWithOutputAsync(token);
-        return TypedResults.Created(
-            $"/bucket/{newBucket.BucketId}",
-            new BucketDto(
-                newBucket.BucketId,
-                newBucket.NodeId,
-                newBucket.Ttl));
+        return TypedResults.Created($"/bucket/{newBucket.BucketId}", newBucket.ToDto());
     }
 }

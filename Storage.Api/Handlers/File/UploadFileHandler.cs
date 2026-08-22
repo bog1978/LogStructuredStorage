@@ -6,7 +6,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using MinimalApi.Hosting;
 using Storage.Api.Dto;
-using Storage.Api.Handlers.Bucket;
+using Storage.Api.Exceptions;
+using Storage.Api.Handlers.Metadata;
 using Storage.Db.Cluster;
 using Storage.Node;
 
@@ -36,10 +37,10 @@ internal class UploadFileHandler : IEndpointHandler
         CancellationToken token)
     {
         filePath = Uri.UnescapeDataString(filePath);
-        
+
         var bucket = await clusterConnection.Buckets.SingleAsync(x => x.BucketId == bucketId, token);
         if (bucket.NodeId != options.Value.NodeId)
-            throw new NotImplementedException("Переадресация на другую ноду пока не реализована.");
+            throw new FeatureNotImplementedException("Переадресация на другую ноду.");
 
         using var ms = new MemoryStream();
         await formFile.CopyToAsync(ms, token);
@@ -52,15 +53,13 @@ internal class UploadFileHandler : IEndpointHandler
             .Value(x => x.BucketId, bucket.BucketId)
             .Value(x => x.NodeId, bucket.NodeId)
             .Value(x => x.FileName, filePath)
-            .Value(x => x.Offset, location.Offset)
+            .Value(x => x.PartOffset, location.Offset)
             .Value(x => x.PartId, location.PartNumber)
+            .Value(x => x.FileSize, formFile.Length)
             .InsertWithOutputAsync(token);
 
         return TypedResults.Created(
-            $"/file/{bucketId}/{filePath}",
-            new FileDto(
-                formFile.FileName,
-                bucket.BucketId,
-                bucket.NodeId));
+            $"/file/{bucketId}/{filePath.TrimStart('/')}",
+            file.ToDto());
     }
 }

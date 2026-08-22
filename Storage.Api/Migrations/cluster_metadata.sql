@@ -23,10 +23,12 @@ CREATE TABLE bucket (
 CREATE TABLE file (
   file_id BIGSERIAL PRIMARY KEY,
   file_name TEXT NOT NULL, -- Имя файла
+  file_size BIGINT NOT NULL, -- Размер файла
   bucket_id VARCHAR(16) NOT NULL, -- ИД корзины
   node_id VARCHAR(16) NOT NULL REFERENCES node(node_id), -- ИД узла, на котором реально лежит файл.
-  "offset" BIGINT NOT NULL, -- Смещение в файле
-  part_id INT NOT NULL -- ИД части файла  
+  part_id INT NOT NULL, -- ИД части файла
+  part_offset BIGINT NOT NULL, -- Смещение в файле-контейнере
+  created_at TIMESTAMPTZ NOT NULL DEFAULT(CURRENT_TIMESTAMP)
 );
 
 -- Один и тот же файл может находиться
