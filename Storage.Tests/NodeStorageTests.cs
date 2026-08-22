@@ -64,6 +64,13 @@ public sealed class NodeStorageTests : IDisposable
             Assert.That(rHash, Is.EqualTo(wHash));
         }
     }
+    
+    [Test, Order(2)]
+    public void PolicyTest()
+    {
+        var bucketStorage = _host.Services.GetRequiredService<INodeStorage>();
+        bucketStorage.ApplyRetentionPolicy(new RetentionPolicy(TimeSpan.Zero)); 
+    }
 
     public void Dispose() =>
         _host.Dispose();
