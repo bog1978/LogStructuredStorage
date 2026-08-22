@@ -1,11 +1,11 @@
 ﻿using JetBrains.Annotations;
-using LinqToDB.Async;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using MinimalApi.Hosting;
 using Storage.Api.Dto;
 using Storage.Api.Handlers.Metadata;
-using Storage.Db.Cluster;
+using Storage.Cluster;
+using Storage.Cluster.DataAccess;
 
 namespace Storage.Api.Handlers.File;
 
@@ -29,17 +29,16 @@ internal sealed class GetFilesHandler : IEndpointHandler
         [FromQuery] int? pageNumber,
         [FromQuery] int? pageSize,
         [FromServices] ILogger<GetBucketsHandler> logger,
-        [FromServices] ClusterConnection clusterConnection,
+        [FromServices] IClusterDataAccess clusterDataAccess,
         CancellationToken token)
     {
-        var files = await clusterConnection.Files
-            .Where(x => x.BucketId == bucketId)
-            .OrderBy(x => x.FileId)
-            .Skip(pageSize ?? 100 * pageNumber ?? 0)
-            .Take(pageSize ?? 100)
+        var files = await clusterDataAccess.GetFilesAsync(
+            bucketId,
+            pageNumber ?? 100,
+            pageSize ?? 0,
+            token);
+        return TypedResults.Ok(files
             .Select(x => x.ToDto())
-            .ToListAsync(token);
-        
-        return TypedResults.Ok(files);
+            .ToList());
     }
 }

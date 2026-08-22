@@ -1,5 +1,4 @@
 ﻿using JetBrains.Annotations;
-using LinqToDB.Async;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
@@ -7,7 +6,8 @@ using MinimalApi.Hosting;
 using Storage.Api.Dto;
 using Storage.Api.Exceptions;
 using Storage.Api.Handlers.Metadata;
-using Storage.Db.Cluster;
+using Storage.Cluster;
+using Storage.Cluster.DataAccess;
 using Storage.Node;
 
 namespace Storage.Api.Handlers.File;
@@ -30,19 +30,16 @@ internal class DownloadFileHandler : IEndpointHandler
     private static async Task<FileStreamHttpResult> DownloadFileAsync(
         [FromRoute] string bucketId,
         [FromRoute] string filePath,
-        [FromServices] IOptions<ApiOptions> options,
+        [FromServices] IOptions<ClusterOptions> options,
         [FromServices] ILogger<GetBucketsHandler> logger,
-        [FromServices] ClusterConnection clusterConnection,
+        [FromServices] IClusterDataAccess clusterDataAccess,
         [FromServices] INodeStorage nodeStorage,
         CancellationToken token)
     {
         filePath = Uri.UnescapeDataString(filePath);
         var fileName = Path.GetFileName(filePath);
 
-        var file = await clusterConnection.Files
-            .Where(x => x.BucketId == bucketId && x.FileName == filePath)
-            .SingleOrDefaultAsync(token);
-
+        var file = await clusterDataAccess.GetFileAsync(bucketId, filePath, token);
         if (file == null)
             throw new BucketFileNotFoundException(bucketId, filePath);
 

@@ -2,7 +2,7 @@
 using LinqToDB;
 using LinqToDB.Linq;
 
-namespace Storage.Api.Db;
+namespace Storage.Cluster.DataAccess;
 
 internal static class QueryableExt
 {

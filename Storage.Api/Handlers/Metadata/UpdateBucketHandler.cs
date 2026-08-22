@@ -1,12 +1,11 @@
 ﻿using JetBrains.Annotations;
-using LinqToDB;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using MinimalApi.Hosting;
-using Storage.Api.Db;
 using Storage.Api.Dto;
 using Storage.Api.Exceptions;
-using Storage.Db.Cluster;
+using Storage.Cluster;
+using Storage.Cluster.DataAccess;
 
 namespace Storage.Api.Handlers.Metadata;
 
@@ -16,32 +15,24 @@ internal sealed class UpdateBucketHandler : IEndpointHandler
     public static IEndpointConventionBuilder[] ConfigureEndpoint(IEndpointRouteBuilder builder) =>
     [
         builder
-            .MapPatch("/bucket/{buckedId}", UpdateBucketsAsync)
+            .MapPatch("/bucket/{bucketId}", UpdateBucketsAsync)
             .WithName("UpdateBucket")
             .WithTags("Metadata")
     ];
 
     /// <summary>Изменение параметров корзины.</summary>
-    /// <param name="buckedId">Идентификатор корзины.</param>
+    /// <param name="bucketId">Идентификатор корзины.</param>
     /// <param name="patchDto">Новые параметры корзины.</param>
     private static async Task<Ok<BucketDto>> UpdateBucketsAsync(
-        [FromRoute] string buckedId,
+        [FromRoute] string bucketId,
         [FromBody] BucketPatchDto patchDto,
         [FromServices] ILogger<GetBucketsHandler> logger,
-        [FromServices] ClusterConnection clusterConnection,
+        [FromServices] IClusterDataAccess clusterDataAccess,
         CancellationToken token)
     {
-        var updatedList = await clusterConnection.Buckets
-            .Where(x => x.BucketId == buckedId)
-            .AsUpdatable()
-            .SetIf(patchDto.NodeId != null, x => x.NodeId, () => patchDto.NodeId)
-            .SetIf(patchDto.TimeToLive != null, x => x.Ttl, () => patchDto.TimeToLive)
-            .UpdateWithOutputAsync((del, ins) => ins)
-            .ToListAsync(token);
-
-        var updated = updatedList.SingleOrDefault()
-                      ?? throw new BucketNotFoundException(buckedId);
-        
+        var updated =
+            await clusterDataAccess.UpdateBucketAsync(bucketId, patchDto.NodeId, patchDto.TimeToLive, token)
+            ?? throw new BucketNotFoundException(bucketId);
         return TypedResults.Ok(updated.ToDto());
     }
 }

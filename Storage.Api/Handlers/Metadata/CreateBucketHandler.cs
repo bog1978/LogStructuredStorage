@@ -1,10 +1,10 @@
 ﻿using JetBrains.Annotations;
-using LinqToDB;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using MinimalApi.Hosting;
 using Storage.Api.Dto;
-using Storage.Db.Cluster;
+using Storage.Cluster;
+using Storage.Cluster.DataAccess;
 
 namespace Storage.Api.Handlers.Metadata;
 
@@ -23,14 +23,14 @@ internal sealed class CreateBucketHandler : IEndpointHandler
     private static async Task<Created<BucketDto>> GetBucketsAsync(
         [FromBody] BucketCreateDto createDto,
         [FromServices] ILogger<GetBucketsHandler> logger,
-        [FromServices] ClusterConnection clusterConnection,
+        [FromServices] IClusterDataAccess clusterDataAccess,
         CancellationToken token)
     {
-        var newBucket = await clusterConnection.Buckets
-            .Value(x => x.BucketId, createDto.BucketId)
-            .Value(x => x.NodeId, createDto.NodeId)
-            .Value(x => x.Ttl, createDto.TimeToLive)
-            .InsertWithOutputAsync(token);
+        var newBucket = await clusterDataAccess.CreateBucketAsync(
+            createDto.BucketId,
+            createDto.NodeId,
+            createDto.TimeToLive,
+            token);
         return TypedResults.Created($"/bucket/{newBucket.BucketId}", newBucket.ToDto());
     }
 }

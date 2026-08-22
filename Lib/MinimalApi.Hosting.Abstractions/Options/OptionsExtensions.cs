@@ -10,13 +10,13 @@ public static class OptionsExtensions
 {
     public static IServiceCollection BindOptions<TOptions>(
         this IServiceCollection services,
-        IConfigurationRoot configuration)
+        IConfiguration configuration)
         where TOptions : class, IOptionsBase =>
         BindOptions<TOptions>(services, configuration, TOptions.SectionName);
 
     public static IServiceCollection BindOptions<TOptions>(
         this IServiceCollection services,
-        IConfigurationRoot configuration,
+        IConfiguration configuration,
         string sectionName)
         where TOptions : class
     {

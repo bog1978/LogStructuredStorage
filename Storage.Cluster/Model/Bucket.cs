@@ -11,7 +11,7 @@ using System;
 
 #pragma warning disable 1573, 1591
 
-namespace Storage.Db.Cluster
+namespace Storage.Cluster.Model
 {
 	[Table("bucket", Schema = "public")]
 	public partial class Bucket
@@ -24,7 +24,7 @@ namespace Storage.Db.Cluster
 		/// <summary>
 		/// bucket_node_id_fkey
 		/// </summary>
-		[Association(CanBeNull = false, ThisKey = nameof(NodeId), OtherKey = nameof(Cluster.Node.NodeId))]
+		[Association(CanBeNull = false, ThisKey = nameof(NodeId), OtherKey = nameof(Model.Node.NodeId))]
 		public Node Node { get; set; }
 		#endregion
 	}

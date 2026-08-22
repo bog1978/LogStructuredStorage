@@ -1,6 +1,6 @@
 {
   "general": {
-    "output": "./Db/Cluster",
+    "output": "Model",
     "overwrite": true,
     "provider": "PostgreSQL",
     "connection": "Host=localhost;Port=5432;Database=lss_cluster;Username=appuser;Password=apppassword;Include Error Detail=True;"
@@ -33,7 +33,7 @@
   "code": {
     "nrt": false,
     "generated-suffix": false,
-    "namespace": "Storage.Db.Cluster"
+    "namespace": "Storage.Cluster.Model"
   },
   "schema": {
     "include-schemas": [

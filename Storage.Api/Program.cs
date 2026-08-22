@@ -6,8 +6,7 @@ using Npgsql;
 using OpenTelemetry;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Trace;
-using Storage.Api.Db;
-using Storage.Api.Services;
+using Storage.Cluster;
 using Storage.Node;
 
 namespace Storage.Api;
@@ -33,9 +32,8 @@ internal sealed class Program
                 .AddRuntimeInstrumentation()
                 .AddProcessInstrumentation());
 
-        // Настройка конфигурации
-        builder.Services.BindOptions<ApiOptions>(builder.Configuration);
-        var storageOptions = builder.Configuration.GetOptions<ApiOptions>();
+        // Настройка конфигурации API
+        var apiOptions = builder.Configuration.GetOptions<ApiOptions>();
 
         // Настройка Swagger
         builder.Services.AddEndpointsApiExplorer();
@@ -59,9 +57,8 @@ internal sealed class Program
                     .AllowAnyOrigin()
                     .AllowAnyHeader()
                     .AllowAnyMethod()))
-            .AddStorage(builder.Configuration)
             .AddApiHandlers()
-            .AddTransient<NodeInitializer>()
+            .AddCluster(builder.Configuration)
             .AddNodeStorage(builder.Configuration)
             .AddCors(options => options
                 .AddPolicy("all", policy => policy
@@ -72,7 +69,7 @@ internal sealed class Program
 
         // Лимит для multipart/form-data из настройки
         // Лимит загрузки 32 МБ. 0 или отрицательное значение = без ограничения
-        var bodySizeLimit = storageOptions.BodySizeLimitMb * 1024 * 1024;
+        var bodySizeLimit = apiOptions.BodySizeLimitMb * 1024 * 1024;
         builder.Services.Configure<FormOptions>(options =>
             options.MultipartBodyLengthLimit = bodySizeLimit);
 
@@ -89,11 +86,7 @@ internal sealed class Program
         app.UseMaxRequestBodySize(bodySizeLimit);
 
         // Регистрация узла в кластере.
-        using (var scope = app.Services.CreateScope())
-        {
-            var nodeInitializer = scope.ServiceProvider.GetRequiredService<NodeInitializer>();
-            await nodeInitializer.InitializeAsync(CancellationToken.None);
-        }
+        await app.UseClusterAsync();
 
         await app.RunAsync();
     }

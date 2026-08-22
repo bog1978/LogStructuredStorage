@@ -1,11 +1,11 @@
 ﻿using JetBrains.Annotations;
-using LinqToDB.Async;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using MinimalApi.Hosting;
 using Storage.Api.Dto;
 using Storage.Api.Exceptions;
-using Storage.Db.Cluster;
+using Storage.Cluster;
+using Storage.Cluster.DataAccess;
 
 namespace Storage.Api.Handlers.Metadata;
 
@@ -25,15 +25,12 @@ internal sealed class GetBucketHandler : IEndpointHandler
     private static async Task<Ok<BucketDto>> GetBucketsAsync(
         [FromRoute] string bucketId,
         [FromServices] ILogger<GetBucketsHandler> logger,
-        [FromServices] ClusterConnection clusterConnection,
+        [FromServices] IClusterDataAccess clusterDataAccess,
         CancellationToken token)
     {
-        var bucket = await clusterConnection.Buckets
-            .Where(x => x.BucketId == bucketId)
-            .Select(x => x.ToDto())
-            .SingleOrDefaultAsync(token);
+        var bucket = await clusterDataAccess.GetBucketAsync(bucketId, token);
         return bucket != null
-            ? TypedResults.Ok(bucket)
+            ? TypedResults.Ok(bucket.ToDto())
             : throw new BucketNotFoundException(bucketId);
     }
 }

@@ -1,10 +1,10 @@
 ﻿using JetBrains.Annotations;
-using LinqToDB.Async;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using MinimalApi.Hosting;
 using Storage.Api.Dto;
-using Storage.Db.Cluster;
+using Storage.Cluster;
+using Storage.Cluster.DataAccess;
 
 namespace Storage.Api.Handlers.Metadata;
 
@@ -22,12 +22,12 @@ internal sealed class GetNodesHandler : IEndpointHandler
     /// <summary>Список узлов в кластере.</summary>
     private static async Task<Ok<List<NodeDto>>> GetNodesAsync(
         [FromServices] ILogger<GetBucketsHandler> logger,
-        [FromServices] ClusterConnection clusterConnection,
+        [FromServices] IClusterDataAccess clusterDataAccess,
         CancellationToken token)
     {
-        var nodes = await clusterConnection.Nodes
+        var nodes = await clusterDataAccess.GetNodesAsync(token);
+        return TypedResults.Ok(nodes
             .Select(x => x.ToDto())
-            .ToListAsync(token);
-        return TypedResults.Ok(nodes);
+            .ToList());
     }
 }
