@@ -7,7 +7,6 @@
     <File Path="Directory.Build.props" />
   </Folder>
   <Project Path="Storage.Api/Storage.Api.csproj" />
-  <Project Path="Storage.Grpc/Storage.Grpc.csproj" />
   <Project Path="Storage.Node/Storage.Node.csproj" />
   <Project Path="Storage.Tests/Storage.Tests.csproj" />
 </Solution>
