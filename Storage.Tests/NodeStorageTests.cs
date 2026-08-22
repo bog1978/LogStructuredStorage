@@ -7,7 +7,7 @@ namespace Storage.Tests;
 
 public sealed class NodeStorageTests : IDisposable
 {
-    private readonly INodeStorage _bucketStorage;
+    private readonly IHost _host;
 
     private readonly string[] _bucketNames =
     [
@@ -22,28 +22,28 @@ public sealed class NodeStorageTests : IDisposable
         var builder = Host.CreateApplicationBuilder();
         var services = builder.Services;
         services.AddNodeStorage(builder.Configuration);
-        var host = builder.Build();
-        _bucketStorage = host.Services.GetRequiredService<INodeStorage>();
+        _host = builder.Build();
     }
 
     [OneTimeSetUp]
-    public void Setup() => 
-        _bucketStorage.DeleteAll();
-
-    [OneTimeTearDown]
-    public void Cleanup() => 
-        _bucketStorage.DeleteAll();
+    public void Setup()
+    {
+        var bucketStorage = _host.Services.GetRequiredService<INodeStorage>();
+        bucketStorage.DeleteAll();
+    }
 
     [Test, Order(0)]
     public void CreateBucketsTest()
     {
+        var bucketStorage = _host.Services.GetRequiredService<INodeStorage>();
         foreach (var bucketName in _bucketNames)
-            _bucketStorage.GetOrCreateBucket(bucketName);
+            bucketStorage.GetOrCreateBucket(bucketName);
     }
 
     [Test, Order(1)]
     public void GenericTest()
     {
+        var bucketStorage = _host.Services.GetRequiredService<INodeStorage>();
         var locationList = new List<(DataLocation Location, string Hash)>();
 
         for (var i = 0; i < 500; i++)
@@ -53,18 +53,18 @@ public sealed class NodeStorageTests : IDisposable
             var wData = new byte[size];
             Random.Shared.NextBytes(wData);
             var wHash = Convert.ToBase64String(SHA256.HashData(wData));
-            var location = _bucketStorage.Write(bucketName, wData);
+            var location = bucketStorage.Write(bucketName, wData);
             locationList.Add((location, wHash));
         }
 
         foreach (var (location, wHash) in locationList)
         {
-            var rData = _bucketStorage.Read(location);
+            var rData = bucketStorage.Read(location);
             var rHash = Convert.ToBase64String(SHA256.HashData(rData));
             Assert.That(rHash, Is.EqualTo(wHash));
         }
     }
 
-    public void Dispose() => 
-        _bucketStorage.Dispose();
+    public void Dispose() =>
+        _host.Dispose();
 }

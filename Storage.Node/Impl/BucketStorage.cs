@@ -1,4 +1,4 @@
-﻿namespace Storage.Node;
+﻿namespace Storage.Node.Impl;
 
 internal sealed class BucketStorage : IBucketStorage
 {

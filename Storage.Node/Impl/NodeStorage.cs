@@ -1,7 +1,7 @@
 ﻿using System.Collections.Concurrent;
 using Microsoft.Extensions.Options;
 
-namespace Storage.Node;
+namespace Storage.Node.Impl;
 
 internal sealed class NodeStorage : INodeStorage
 {
@@ -21,7 +21,7 @@ internal sealed class NodeStorage : INodeStorage
             : throw new InvalidOperationException("Bucket not found");
 
     public IBucketStorage GetOrCreateBucket(string bucketName) =>
-        _bucketMap.GetOrAdd(bucketName, _ => new BucketStorage(_options.RootPath, bucketName, _options.PartSize));
+        _bucketMap.GetOrAdd(bucketName, key => new BucketStorage(_options.RootPath, key, _options.PartSize));
 
     public void DeleteAll()
     {
@@ -32,7 +32,8 @@ internal sealed class NodeStorage : INodeStorage
 
     public void Dispose()
     {
-        Close();
+        foreach (var bucketStorage in _bucketMap.Values)
+            bucketStorage.Dispose();
     }
 
     private void LoadBuckets()
@@ -47,11 +48,5 @@ internal sealed class NodeStorage : INodeStorage
             if (!_bucketMap.TryAdd(bucketName, bucketStorage))
                 throw new InvalidOperationException($"Bucket {bucketName} already exists");
         }
-    }
-    
-    private void Close()
-    {
-        foreach (var bucketStorage in _bucketMap.Values)
-            bucketStorage.Dispose();
     }
 }

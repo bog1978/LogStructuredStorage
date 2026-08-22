@@ -1,6 +1,6 @@
 ﻿using System.Text;
 
-namespace Storage.Node;
+namespace Storage.Node.Impl;
 
 internal static class HeaderExt
 {
