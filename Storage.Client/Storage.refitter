@@ -1,0 +1,20 @@
+﻿{
+  "outputFolder": ".",
+  "openApiPath": "swagger.json",
+  "namespace": "Storage.Client",
+  "useCancellationTokens": true,
+  "operationNameTemplate": "{operationName}Async",
+  "generateMultipleFiles": true,
+  "generateDeprecatedOperations": false,
+  "responseTypeOverride": {
+    "DownloadFile": "ApiResponse<Stream>",
+    "UploadFile": "ApiResponse<Stream>"
+  },
+  "codeGeneratorSettings": {
+    "generateOptionalPropertiesAsNullable": true,
+    "excludedTypeNames": [
+      "FileParameter",
+      "FileResponse"
+    ]
+  }
+}

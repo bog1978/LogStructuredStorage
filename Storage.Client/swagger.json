@@ -1,0 +1,400 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Storage.Api",
+    "description": "API для работы Log-Structured Storage (LSS).",
+    "version": "v1"
+  },
+  "servers": [
+    {
+      "url": "/"
+    }
+  ],
+  "paths": {
+    "/bucket": {
+      "get": {
+        "tags": [
+          "Metadata"
+        ],
+        "summary": "Список корзин в кластере.",
+        "operationId": "GetBuckets",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/BucketDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Metadata"
+        ],
+        "summary": "Создание новой корзины.",
+        "operationId": "CreateBucket",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BucketCreateDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BucketDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bucket/{bucketId}": {
+      "get": {
+        "tags": [
+          "Metadata"
+        ],
+        "summary": "Запрос корзины по её ИД.",
+        "operationId": "GetBucket",
+        "parameters": [
+          {
+            "name": "bucketId",
+            "in": "path",
+            "description": "ИД корзины.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BucketDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Metadata"
+        ],
+        "summary": "Изменение параметров корзины.",
+        "operationId": "UpdateBucket",
+        "parameters": [
+          {
+            "name": "bucketId",
+            "in": "path",
+            "description": "Идентификатор корзины.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "Новые параметры корзины.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BucketPatchDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BucketDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/file/{bucketId}": {
+      "get": {
+        "tags": [
+          "File"
+        ],
+        "summary": "Список файлов корзины.",
+        "operationId": "GetFiles",
+        "parameters": [
+          {
+            "name": "bucketId",
+            "in": "path",
+            "description": "Идентификатор корзины.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "pageNumber",
+            "in": "query",
+            "description": "Номер страницы (начиная с 0).",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "description": "Размер страницы.",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FileDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/file/{bucketId}/{filePath}": {
+      "get": {
+        "tags": [
+          "File"
+        ],
+        "summary": "Скачивание файла из хранилища.",
+        "operationId": "DownloadFile",
+        "parameters": [
+          {
+            "name": "bucketId",
+            "in": "path",
+            "description": "Идентификатор корзины.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "filePath",
+            "in": "path",
+            "description": "Путь к файлу в корзине.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "File"
+        ],
+        "summary": "Загрузка файла в хранилище.",
+        "operationId": "UploadFile",
+        "parameters": [
+          {
+            "name": "bucketId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "filePath",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "required": [
+                  "formFile"
+                ],
+                "type": "object",
+                "properties": {
+                  "formFile": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                }
+              },
+              "encoding": {
+                "formFile": {
+                  "style": "form"
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FileDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/node": {
+      "get": {
+        "tags": [
+          "Metadata"
+        ],
+        "summary": "Список узлов в кластере.",
+        "operationId": "GetNodes",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/NodeDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "BucketCreateDto": {
+        "type": "object",
+        "properties": {
+          "bucketId": {
+            "type": "string",
+            "nullable": true
+          },
+          "nodeId": {
+            "type": "string",
+            "nullable": true
+          },
+          "timeToLive": {
+            "type": "string",
+            "format": "date-span"
+          }
+        },
+        "additionalProperties": false
+      },
+      "BucketDto": {
+        "type": "object",
+        "properties": {
+          "bucketId": {
+            "type": "string",
+            "nullable": true
+          },
+          "nodeId": {
+            "type": "string",
+            "nullable": true
+          },
+          "timeToLive": {
+            "type": "string",
+            "format": "date-span"
+          }
+        },
+        "additionalProperties": false
+      },
+      "BucketPatchDto": {
+        "type": "object",
+        "properties": {
+          "nodeId": {
+            "type": "string",
+            "nullable": true
+          },
+          "timeToLive": {
+            "type": "string",
+            "format": "date-span",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "FileDto": {
+        "type": "object",
+        "properties": {
+          "fileName": {
+            "type": "string",
+            "nullable": true
+          },
+          "fileSize": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "NodeDto": {
+        "type": "object",
+        "properties": {
+          "nodeId": {
+            "type": "string",
+            "nullable": true
+          },
+          "hostName": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  }
+}
