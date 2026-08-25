@@ -59,9 +59,13 @@ internal sealed class BucketStorage : IBucketStorage
 
     public void ApplyRetentionPolicy(RetentionPolicy policy)
     {
-        foreach (var part in _partsMap.Values)
-            if (part.MaxTime < DateTimeOffset.Now + policy.Ttl)
+        var parts = _partsMap.Values.ToList();
+        foreach (var part in parts)
+            if (!part.CanWrite && part.MaxTime < DateTimeOffset.Now + policy.Ttl)
+            {
                 part.Delete();
+                _partsMap.Remove(part.PartNumber, out var removed);
+            }
     }
 
     private void LoadParts()

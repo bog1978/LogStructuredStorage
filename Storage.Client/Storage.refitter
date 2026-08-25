@@ -7,8 +7,7 @@
   "generateMultipleFiles": true,
   "generateDeprecatedOperations": false,
   "responseTypeOverride": {
-    "DownloadFile": "ApiResponse<Stream>",
-    "UploadFile": "ApiResponse<Stream>"
+    "DownloadFile": "ApiResponse<Stream>"
   },
   "codeGeneratorSettings": {
     "generateOptionalPropertiesAsNullable": true,

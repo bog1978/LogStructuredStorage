@@ -12,6 +12,9 @@ internal class ClusterDataAccess(ClusterConnection clusterConnection) : ICluster
         TimeSpan timeToLive,
         CancellationToken token) =>
         await clusterConnection.Buckets
+            .Where(x => x.BucketId == bucketId)
+            .SingleOrDefaultAsync(token) ??
+        await clusterConnection.Buckets
             .Value(x => x.BucketId, bucketId)
             .Value(x => x.NodeId, nodeId)
             .Value(x => x.Ttl, timeToLive)
@@ -77,15 +80,27 @@ internal class ClusterDataAccess(ClusterConnection clusterConnection) : ICluster
         long partOffset,
         int partNumber,
         long fileSize,
-        CancellationToken token) =>
-        await clusterConnection.Files
-            .Value(x => x.BucketId, bucketId)
-            .Value(x => x.NodeId, nodeId)
-            .Value(x => x.FileName, filePath)
-            .Value(x => x.PartOffset, partOffset)
-            .Value(x => x.PartId, partNumber)
-            .Value(x => x.FileSize, fileSize)
-            .InsertWithOutputAsync(token);
+        CancellationToken token)
+    {
+        var existing = await GetFileAsync(bucketId, filePath, token);
+        if (existing == null)
+            return await clusterConnection.Files
+                .Value(x => x.BucketId, bucketId)
+                .Value(x => x.FileName, filePath)
+                .Value(x => x.NodeId, nodeId)
+                .Value(x => x.PartOffset, partOffset)
+                .Value(x => x.PartId, partNumber)
+                .Value(x => x.FileSize, fileSize)
+                .InsertWithOutputAsync(token);
+        return await clusterConnection.Files
+            .Where(x => x.BucketId == bucketId && x.FileName == filePath)
+            .Set(x => x.NodeId, nodeId)
+            .Set(x => x.PartOffset, partOffset)
+            .Set(x => x.PartId, partNumber)
+            .Set(x => x.FileSize, fileSize)
+            .UpdateWithOutputAsync((del, ins) => ins)
+            .SingleAsync(token);
+    }
 
     public async Task RegisterNodeAsync(
         string nodeId,

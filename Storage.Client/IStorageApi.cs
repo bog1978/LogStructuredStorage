@@ -89,23 +89,12 @@ namespace Storage.Client
         /// <param name="filePath">filePath parameter</param>
         /// <param name="formFile">formFile parameter</param>
         /// <param name="cancellationToken">The cancellation token to cancel the request.</param>
-        /// <returns>
-        /// A <see cref="Task"/> representing the <see cref="IApiResponse"/> instance containing the result:
-        /// <list type="table">
-        /// <listheader>
-        /// <term>Status</term>
-        /// <description>Description</description>
-        /// </listheader>
-        /// <item>
-        /// <term>201</term>
-        /// <description>Created</description>
-        /// </item>
-        /// </list>
-        /// </returns>
+        /// <returns>Created</returns>
+        /// <exception cref="ApiException">Thrown when the request returns a non-success status code.</exception>
         [Multipart]
         [Headers("Accept: application/json")]
         [Post("/file/{bucketId}/{filePath}")]
-        Task<ApiResponse<Stream>> UploadFileAsync(string bucketId, string filePath, StreamPart formFile, CancellationToken cancellationToken = default);
+        Task<FileDto> UploadFileAsync(string bucketId, string filePath, StreamPart formFile, CancellationToken cancellationToken = default);
 
         /// <summary>Список узлов в кластере.</summary>
         /// <param name="cancellationToken">The cancellation token to cancel the request.</param>

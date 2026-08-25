@@ -15,7 +15,7 @@ public static class StorageInstaller
     {
         var options = configuration.GetOptions<StorageClientOptions>();
         var httpClientBuilder = services
-            .AddRefitClient<IStorageApi>(settings)
+            .AddRefitGeneratedClient<IStorageApi>(settings)
             .ConfigureHttpClient(c => c.BaseAddress = new Uri(options.BaseUri));
         builder?.Invoke(httpClientBuilder);
         return services;

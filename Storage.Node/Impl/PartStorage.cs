@@ -86,7 +86,11 @@ internal sealed class PartStorage : IDisposable
     public bool TryWrite(byte[] data, out long offset)
     {
         if (_writer == null)
-            throw new InvalidOperationException("Part is read only.");
+        {
+            offset = -1;
+            return false;
+        }
+        
         try
         {
             _lock.EnterWriteLock();
