@@ -1,5 +1,4 @@
 ﻿using Storage.Cluster.Model;
-using File = Storage.Cluster.Model.File;
 
 namespace Storage.Cluster.DataAccess;
 
@@ -10,15 +9,15 @@ public interface IClusterDataAccess
         string nodeId,
         TimeSpan timeToLive,
         CancellationToken token);
-    
+
     Task<Bucket?> GetBucketAsync(
         string bucketId,
         CancellationToken token);
-    
+
     Task<IReadOnlyList<Bucket>> GetBucketsAsync(
         CancellationToken token);
-    
-    Task<IReadOnlyList<Node>> GetNodesAsync(
+
+    Task<IReadOnlyList<Model.Node>> GetNodesAsync(
         CancellationToken token);
 
     Task<Bucket?> UpdateBucketAsync(
@@ -27,18 +26,18 @@ public interface IClusterDataAccess
         TimeSpan? timeToLive,
         CancellationToken token);
 
-    Task<File?> GetFileAsync(
+    Task<Model.File?> GetFileAsync(
         string bucketId,
         string filePath,
         CancellationToken token);
 
-    Task<IReadOnlyList<File>> GetFilesAsync(
+    Task<IReadOnlyList<Model.File>> GetFilesAsync(
         string bucketId,
         int pageNumber,
         int pageSize,
         CancellationToken token);
 
-    Task<File> CreateFileAsync(
+    Task<Model.File> CreateFileAsync(
         string bucketId,
         string nodeId,
         string filePath,

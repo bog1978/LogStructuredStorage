@@ -17,7 +17,8 @@ public static class ClusterInstaller
         return services
             .BindOptions<ClusterOptions>(configuration)
             .AddStorage(configuration)
-            .AddTransient<NodeInitializer>();
+            .AddTransient<NodeInitializer>()
+            .AddHostedService<PolicyService>();
     }
 
     public static async Task UseClusterAsync(this IHost app)

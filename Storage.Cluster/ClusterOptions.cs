@@ -12,4 +12,7 @@ public sealed class ClusterOptions : IOptionsBase
     
     [Required(AllowEmptyStrings = false), MinLength(5)]
     public string NodeId { get; set; } = string.Empty;
+    
+    [Required]
+    public TimeSpan PolicyInterval { get; set; } = TimeSpan.FromSeconds(60);
 }

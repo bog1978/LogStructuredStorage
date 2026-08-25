@@ -30,10 +30,10 @@ internal sealed class NodeStorage : INodeStorage
         _bucketMap.Clear();
     }
 
-    public void ApplyRetentionPolicy(RetentionPolicy policy)
+    public void ApplyRetentionPolicy(Func<string, RetentionPolicy> policyFunc)
     {
         foreach (var bucketStorage in _bucketMap.Values)
-            bucketStorage.ApplyRetentionPolicy(policy);
+            bucketStorage.ApplyRetentionPolicy(policyFunc(bucketStorage.Name));
     }
 
     public void Dispose()

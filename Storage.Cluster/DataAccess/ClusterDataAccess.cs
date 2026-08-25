@@ -1,7 +1,6 @@
 ﻿using LinqToDB;
 using LinqToDB.Async;
 using Storage.Cluster.Model;
-using File = Storage.Cluster.Model.File;
 
 namespace Storage.Cluster.DataAccess;
 
@@ -30,7 +29,7 @@ internal class ClusterDataAccess(ClusterConnection clusterConnection) : ICluster
         await clusterConnection.Buckets
             .ToListAsync(token);
 
-    public async Task<IReadOnlyList<Node>> GetNodesAsync(
+    public async Task<IReadOnlyList<Model.Node>> GetNodesAsync(
         CancellationToken token) =>
         await clusterConnection.Nodes
             .ToListAsync(token);
@@ -51,7 +50,7 @@ internal class ClusterDataAccess(ClusterConnection clusterConnection) : ICluster
         return updatedList.SingleOrDefault();
     }
 
-    public async Task<File?> GetFileAsync(
+    public async Task<Model.File?> GetFileAsync(
         string bucketId,
         string filePath,
         CancellationToken token) =>
@@ -59,7 +58,7 @@ internal class ClusterDataAccess(ClusterConnection clusterConnection) : ICluster
             .Where(x => x.BucketId == bucketId && x.FileName == filePath)
             .SingleOrDefaultAsync(token);
 
-    public async Task<IReadOnlyList<File>> GetFilesAsync(
+    public async Task<IReadOnlyList<Model.File>> GetFilesAsync(
         string bucketId,
         int pageNumber,
         int pageSize,
@@ -71,7 +70,7 @@ internal class ClusterDataAccess(ClusterConnection clusterConnection) : ICluster
             .Take(pageSize)
             .ToListAsync(token);
 
-    public async Task<File> CreateFileAsync(
+    public async Task<Model.File> CreateFileAsync(
         string bucketId,
         string nodeId,
         string filePath,

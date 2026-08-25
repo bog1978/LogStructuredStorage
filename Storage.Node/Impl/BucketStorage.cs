@@ -34,6 +34,8 @@ internal sealed class BucketStorage : IBucketStorage
             ? throw new InvalidOperationException("Failed to write data")
             : new(_bucketName, _partStorage.PartNumber, offset);
     }
+    
+    public string Name => _bucketName;
 
     public byte[] Read(DataLocation location) =>
         _partsMap.TryGetValue(location.PartNumber, out var part)
