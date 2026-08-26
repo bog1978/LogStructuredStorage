@@ -8,7 +8,7 @@ services:
     environment:
       # Настройки OpenTelemetry
       OTEL_RESOURCE_ATTRIBUTES: ""
-      OTEL_EXPORTER_OTLP_ENDPOINT: "http://seq:6341/ingest/otlp"
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://seq/ingest/otlp"
       OTEL_EXPORTER_OTLP_TIMEOUT: "10000"
       OTEL_EXPORTER_OTLP_PROTOCOL: "http/protobuf"
       OTEL_METRIC_EXPORT_INTERVAL: 15000
@@ -26,12 +26,17 @@ services:
     ports:
       - "9086:8080"
     volumes:
-      - E:/Share/docker:/mnt/lssData
+      - D:/Share/docker:/mnt/lssData
     networks:
       - lss-network 
     depends_on:
       db:
         condition: service_healthy
+    healthcheck:  
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:8080/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   db:
     image: postgres:16
@@ -63,7 +68,7 @@ services:
       ACCEPT_EULA: Y
       SEQ_FIRSTRUN_NOAUTHENTICATION: true
     healthcheck:
-      test: ["CMD", "curl", "-f", "-u", "http://localhost/health"]
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
       interval: 10s
       timeout: 10s
       retries: 10
