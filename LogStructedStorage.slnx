@@ -4,8 +4,12 @@
     <Project Path="Lib/MinimalApi.Hosting/MinimalApi.Hosting.csproj" />
   </Folder>
   <Folder Name="/Solution Items/">
+    <File Path="compose.yaml" />
     <File Path="Directory.Build.props" />
   </Folder>
+  <Project Path="docker-compose.dcproj">
+    <Build />
+  </Project>
   <Project Path="Storage.Api/Storage.Api.csproj" />
   <Project Path="Storage.Client/Storage.Client.csproj" />
   <Project Path="Storage.Cluster/Storage.Cluster.csproj" />

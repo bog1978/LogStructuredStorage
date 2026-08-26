@@ -1,0 +1,79 @@
+services:
+  api:
+    image: lss/api
+    build:
+      context: .
+      dockerfile: Storage.Api/Dockerfile
+    container_name: lss-api
+    environment:
+      # Настройки OpenTelemetry
+      OTEL_RESOURCE_ATTRIBUTES: ""
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://seq:6341/ingest/otlp"
+      OTEL_EXPORTER_OTLP_TIMEOUT: "10000"
+      OTEL_EXPORTER_OTLP_PROTOCOL: "http/protobuf"
+      OTEL_METRIC_EXPORT_INTERVAL: 15000
+      # ASP.Net
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:8080
+      # Настройки OpenTelemetry
+      OTEL_SERVICE_NAME: "Storage.Api"
+      # Настройки сервиса
+      ApiOptions__BodySizeLimitMb: 16
+      ClusterOptions__ConnectionString: Host=db;Port=5432;Database=lss_cluster;Username=lss_user;Password=lss_password;Include Error Detail=True;
+      ClusterOptions__NodeId: node1
+      StorageOptions__RootPath: /mnt/lssData/node1/hot
+      StorageOptions__PartSize: 104857600
+    ports:
+      - "9086:8080"
+    volumes:
+      - E:/Share/docker:/mnt/lssData
+    networks:
+      - lss-network 
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: postgres:16
+    container_name: lss-db
+    environment:
+      POSTGRES_DB: lss_cluster
+      POSTGRES_USER: lss_user
+      POSTGRES_PASSWORD: lss_password
+    ports:
+      - "6432:5432"
+    volumes:
+      - lss-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lss_user -d lss_cluster"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - lss-network
+
+  seq:
+    image: datalust/seq:latest
+    container_name: lss-seq
+    ports:
+      - "6341:80"
+    volumes:
+      - seq-data:/data
+    environment:
+      ACCEPT_EULA: Y
+      SEQ_FIRSTRUN_NOAUTHENTICATION: true
+    healthcheck:
+      test: ["CMD", "curl", "-f", "-u", "http://localhost/health"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+    networks:
+      - lss-network
+
+volumes:
+  lss-data:
+  seq-data:
+
+networks:
+  lss-network:
+    driver: bridge  

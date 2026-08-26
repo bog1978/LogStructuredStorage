@@ -1,5 +1,6 @@
 ﻿using LinqToDB;
 using LinqToDB.Data;
+using MediaArchive.Storage.Metadata;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -18,14 +19,22 @@ public static class ClusterInstaller
             .BindOptions<ClusterOptions>(configuration)
             .AddStorage(configuration)
             .AddTransient<NodeInitializer>()
+            .AddTransient<DatabaseInitializer>()
             .AddHostedService<PolicyService>();
     }
-
-    public static async Task UseClusterAsync(this IHost app)
+    
+    public static async Task<T> UseClusterAsync<T>(this T host)
+        where T : IHost
     {
-        using var scope = app.Services.CreateScope();
+        using var scope = host.Services.CreateScope();
+
+        var dbInitializer = scope.ServiceProvider.GetRequiredService<DatabaseInitializer>();
+        dbInitializer.InitializeAsync();
+        
         var nodeInitializer = scope.ServiceProvider.GetRequiredService<NodeInitializer>();
         await nodeInitializer.InitializeAsync(CancellationToken.None);
+        
+        return host;
     }
 
     private static IServiceCollection AddStorage(this IServiceCollection services, IConfiguration configuration)

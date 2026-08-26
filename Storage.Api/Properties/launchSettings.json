@@ -7,14 +7,14 @@
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
         "OTEL_SERVICE_NAME": "Storage.Api",
-        "OTEL_EXPORTER_OTLP_ENDPOINT": "http://localhost:4318",
+        "OTEL_EXPORTER_OTLP_ENDPOINT": "http://localhost:6341/ingest/otlp",
         "OTEL_EXPORTER_OTLP_TIMEOUT": "10000",
         "OTEL_EXPORTER_OTLP_PROTOCOL": "http/protobuf",
         "OTEL_METRIC_EXPORT_INTERVAL": "15000"
       },
-      "launchUrl": "http://localhost:8096/swagger",
-      "applicationUrl": "http://localhost:8096",
-      "Archive__InternalBaseUri": "http://localhost:8096"
+      "launchUrl": "http://localhost:9086/swagger",
+      "applicationUrl": "http://localhost:9086",
+      "Archive__InternalBaseUri": "http://localhost:9086"
     }
   }
 }
