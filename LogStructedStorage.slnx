@@ -4,7 +4,6 @@
     <Project Path="Lib/MinimalApi.Hosting/MinimalApi.Hosting.csproj" />
   </Folder>
   <Folder Name="/Solution Items/">
-    <File Path="compose.yaml" />
     <File Path="Directory.Build.props" />
   </Folder>
   <Project Path="docker-compose.dcproj">
