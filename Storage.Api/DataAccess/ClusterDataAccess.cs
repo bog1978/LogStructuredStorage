@@ -1,14 +1,16 @@
 ﻿using LinqToDB;
 using LinqToDB.Async;
+using Model = Storage.Cluster.DataAccess.Model;
 
 namespace Storage.Api.DataAccess;
 
-internal class ClusterDataAccess(Cluster.DataAccess.Model.ClusterConnection clusterConnection) : IClusterDataAccess
+internal class ClusterDataAccess(Model.ClusterConnection clusterConnection) : IClusterDataAccess
 {
-    public async Task<Cluster.DataAccess.Model.Bucket> CreateBucketAsync(
+    public async Task<Model.Bucket> CreateBucketAsync(
         string bucketId,
         string nodeId,
-        TimeSpan timeToLive,
+        TimeSpan ttlHot,
+        TimeSpan ttlCold,
         CancellationToken token) =>
         await clusterConnection.Buckets
             .Where(x => x.BucketId == bucketId)
@@ -16,43 +18,46 @@ internal class ClusterDataAccess(Cluster.DataAccess.Model.ClusterConnection clus
         await clusterConnection.Buckets
             .Value(x => x.BucketId, bucketId)
             .Value(x => x.NodeId, nodeId)
-            .Value(x => x.Ttl, timeToLive)
+            .Value(x => x.TtlHot, ttlHot)
+            .Value(x => x.TtlCold, ttlCold)
             .InsertWithOutputAsync(token);
 
-    public async Task<Cluster.DataAccess.Model.Bucket?> GetBucketAsync(
+    public async Task<Model.Bucket?> GetBucketAsync(
         string bucketId,
         CancellationToken token) =>
         await clusterConnection.Buckets
             .Where(x => x.BucketId == bucketId)
             .SingleOrDefaultAsync(token);
 
-    public async Task<IReadOnlyList<Cluster.DataAccess.Model.Bucket>> GetBucketsAsync(
+    public async Task<IReadOnlyList<Model.Bucket>> GetBucketsAsync(
         CancellationToken token) =>
         await clusterConnection.Buckets
             .ToListAsync(token);
 
-    public async Task<IReadOnlyList<Cluster.DataAccess.Model.Node>> GetNodesAsync(
+    public async Task<IReadOnlyList<Model.Node>> GetNodesAsync(
         CancellationToken token) =>
         await clusterConnection.Nodes
             .ToListAsync(token);
 
-    public async Task<Cluster.DataAccess.Model.Bucket?> UpdateBucketAsync(
+    public async Task<Model.Bucket?> UpdateBucketAsync(
         string bucketId,
         string? nodeId,
-        TimeSpan? timeToLive,
+        TimeSpan? ttlHot,
+        TimeSpan? ttlCold,
         CancellationToken token)
     {
         var updatedList = await clusterConnection.Buckets
             .Where(x => x.BucketId == bucketId)
             .AsUpdatable()
             .SetIf(nodeId != null, x => x.NodeId, () => nodeId)
-            .SetIf(timeToLive != null, x => x.Ttl, () => timeToLive)
+            .SetIf(ttlHot != null, x => x.TtlHot, () => ttlHot)
+            .SetIf(ttlCold != null, x => x.TtlCold, () => ttlCold)
             .UpdateWithOutputAsync((del, ins) => ins)
             .ToListAsync(token);
         return updatedList.SingleOrDefault();
     }
 
-    public async Task<Cluster.DataAccess.Model.File?> GetFileAsync(
+    public async Task<Model.File?> GetFileAsync(
         string bucketId,
         string filePath,
         CancellationToken token) =>
@@ -60,7 +65,7 @@ internal class ClusterDataAccess(Cluster.DataAccess.Model.ClusterConnection clus
             .Where(x => x.BucketId == bucketId && x.FileName == filePath)
             .SingleOrDefaultAsync(token);
 
-    public async Task<IReadOnlyList<Cluster.DataAccess.Model.File>> GetFilesAsync(
+    public async Task<IReadOnlyList<Model.File>> GetFilesAsync(
         string bucketId,
         int pageNumber,
         int pageSize,
@@ -72,7 +77,7 @@ internal class ClusterDataAccess(Cluster.DataAccess.Model.ClusterConnection clus
             .Take(pageSize)
             .ToListAsync(token);
 
-    public async Task<Cluster.DataAccess.Model.File> CreateFileAsync(
+    public async Task<Model.File> CreateFileAsync(
         string bucketId,
         string nodeId,
         string filePath,

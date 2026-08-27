@@ -4,8 +4,6 @@ using Microsoft.AspNetCore.Mvc;
 using Storage.Api.DataAccess;
 using Storage.Api.Dto;
 using Storage.Api.Internal;
-using Storage.Cluster;
-using Storage.Cluster.DataAccess;
 
 namespace Storage.Api.Handlers.Metadata;
 
@@ -30,7 +28,8 @@ internal sealed class CreateBucketHandler : IEndpointHandler
         var newBucket = await clusterDataAccess.CreateBucketAsync(
             createDto.BucketId,
             createDto.NodeId,
-            createDto.TimeToLive,
+            createDto.TtlHot,
+            createDto.TtlCold,
             token);
         return TypedResults.Created($"/bucket/{newBucket.BucketId}", newBucket.ToDto());
     }

@@ -19,7 +19,8 @@ internal class Worker(ILogger<Worker> logger, IStorageApi client)
             {
                 NodeId = nodes.First().NodeId,
                 BucketId = "test-bucket",
-                TimeToLive = "00:01:00"
+                TtlHot = "00:01:00",
+                TtlCold = "01:00:00"
             };
 
             var bucket = await client.CreateBucketAsync(bucketCreateDto);

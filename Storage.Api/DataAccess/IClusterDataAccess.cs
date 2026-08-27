@@ -7,7 +7,8 @@ internal interface IClusterDataAccess
     Task<Model.Bucket> CreateBucketAsync(
         string bucketId,
         string nodeId,
-        TimeSpan timeToLive,
+        TimeSpan ttlHot,
+        TimeSpan ttlCold,
         CancellationToken token);
 
     Task<Model.Bucket?> GetBucketAsync(
@@ -23,7 +24,8 @@ internal interface IClusterDataAccess
     Task<Model.Bucket?> UpdateBucketAsync(
         string bucketId,
         string? nodeId,
-        TimeSpan? timeToLive,
+        TimeSpan? ttlHot,
+        TimeSpan? ttlCold,
         CancellationToken token);
 
     Task<Model.File?> GetFileAsync(

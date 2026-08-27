@@ -34,10 +34,12 @@ internal class PolicyService(
 
     private async Task ApplyPolicyAsync(CancellationToken stoppingToken)
     {
+        // Физически удаляется после истечения срока хранения в холодном хранилище.
+        // TODO: Реализовать перенос из горячего в холодное хранилище.
         using var scope = scopeFactory.CreateScope();
         var clusterDataAccess = scope.ServiceProvider.GetRequiredService<IClusterDataAccess>();
         var buckets = await clusterDataAccess.GetBucketsAsync(stoppingToken);
-        var policyMap = buckets.ToDictionary(x => x.BucketId, x => new RetentionPolicy(x.Ttl));
+        var policyMap = buckets.ToDictionary(x => x.BucketId, x => new RetentionPolicy(x.TtlCold));
         var map = nodeStorage.ApplyRetentionPolicy(x => policyMap[x]);
         foreach (var (bucket, parts) in map)
         foreach (var part in parts)

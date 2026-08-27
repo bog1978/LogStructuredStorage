@@ -36,8 +36,11 @@ namespace Storage.Client
         [System.Text.Json.Serialization.JsonPropertyName("nodeId")]
         public string NodeId { get; set; }
 
-        [System.Text.Json.Serialization.JsonPropertyName("timeToLive")]
-        public string TimeToLive { get; set; }
+        [System.Text.Json.Serialization.JsonPropertyName("ttlHot")]
+        public string TtlHot { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("ttlCold")]
+        public string TtlCold { get; set; }
 
     }
 
@@ -51,8 +54,11 @@ namespace Storage.Client
         [System.Text.Json.Serialization.JsonPropertyName("nodeId")]
         public string NodeId { get; set; }
 
-        [System.Text.Json.Serialization.JsonPropertyName("timeToLive")]
-        public string TimeToLive { get; set; }
+        [System.Text.Json.Serialization.JsonPropertyName("ttlHot")]
+        public string TtlHot { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("ttlCold")]
+        public string TtlCold { get; set; }
 
     }
 
@@ -63,8 +69,11 @@ namespace Storage.Client
         [System.Text.Json.Serialization.JsonPropertyName("nodeId")]
         public string NodeId { get; set; }
 
-        [System.Text.Json.Serialization.JsonPropertyName("timeToLive")]
-        public string TimeToLive { get; set; }
+        [System.Text.Json.Serialization.JsonPropertyName("ttlHot")]
+        public string TtlHot { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("ttlCold")]
+        public string TtlCold { get; set; }
 
     }
 

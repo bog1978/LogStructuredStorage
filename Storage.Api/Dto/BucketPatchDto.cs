@@ -2,4 +2,5 @@
 
 internal sealed record BucketPatchDto(
     string? NodeId,
-    TimeSpan? TimeToLive);
+    TimeSpan? TtlHot,
+    TimeSpan? TtlCold);

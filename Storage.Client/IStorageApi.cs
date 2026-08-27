@@ -53,17 +53,6 @@ namespace Storage.Client
         [Patch("/bucket/{bucketId}")]
         Task<BucketDto> UpdateBucketAsync(string bucketId, [Body] BucketPatchDto body, CancellationToken cancellationToken = default);
 
-        /// <summary>Список файлов корзины.</summary>
-        /// <param name="bucketId">Идентификатор корзины.</param>
-        /// <param name="pageNumber">Номер страницы (начиная с 0).</param>
-        /// <param name="pageSize">Размер страницы.</param>
-        /// <param name="cancellationToken">The cancellation token to cancel the request.</param>
-        /// <returns>OK</returns>
-        /// <exception cref="ApiException">Thrown when the request returns a non-success status code.</exception>
-        [Headers("Accept: application/json")]
-        [Get("/file/{bucketId}")]
-        Task<ICollection<FileDto>> GetFilesAsync(string bucketId, [Query] int? pageNumber, [Query] int? pageSize, CancellationToken cancellationToken = default);
-
         /// <summary>Скачивание файла из хранилища.</summary>
         /// <param name="bucketId">Идентификатор корзины.</param>
         /// <param name="filePath">Путь к файлу в корзине.</param>
@@ -95,6 +84,17 @@ namespace Storage.Client
         [Headers("Accept: application/json")]
         [Post("/file/{bucketId}/{filePath}")]
         Task<FileDto> UploadFileAsync(string bucketId, string filePath, StreamPart formFile, CancellationToken cancellationToken = default);
+
+        /// <summary>Список файлов корзины.</summary>
+        /// <param name="bucketId">Идентификатор корзины.</param>
+        /// <param name="pageNumber">Номер страницы (начиная с 0).</param>
+        /// <param name="pageSize">Размер страницы.</param>
+        /// <param name="cancellationToken">The cancellation token to cancel the request.</param>
+        /// <returns>OK</returns>
+        /// <exception cref="ApiException">Thrown when the request returns a non-success status code.</exception>
+        [Headers("Accept: application/json")]
+        [Get("/file/{bucketId}")]
+        Task<ICollection<FileDto>> GetFilesAsync(string bucketId, [Query] int? pageNumber, [Query] int? pageSize, CancellationToken cancellationToken = default);
 
         /// <summary>Список узлов в кластере.</summary>
         /// <param name="cancellationToken">The cancellation token to cancel the request.</param>

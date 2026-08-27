@@ -1,0 +1,1 @@
+git clean -x -d -f -e *.cmd

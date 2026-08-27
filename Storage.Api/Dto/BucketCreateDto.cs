@@ -3,4 +3,5 @@
 internal sealed record BucketCreateDto(
     string BucketId,
     string NodeId,
-    TimeSpan TimeToLive);
+    TimeSpan TtlHot,
+    TimeSpan TtlCold);

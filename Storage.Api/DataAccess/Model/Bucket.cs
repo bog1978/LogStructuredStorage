@@ -18,7 +18,8 @@ namespace Storage.Cluster.DataAccess.Model
 	{
 		[Column("bucket_id", CanBeNull = false            , DataType = DataType.NVarChar, DbType = "character varying(16)", IsPrimaryKey = true)] public string   BucketId { get; set; } // character varying(16)
 		[Column("node_id"  , CanBeNull = false            , DataType = DataType.NVarChar, DbType = "character varying(16)"                     )] public string   NodeId   { get; set; } // character varying(16)
-		[Column("ttl"      , DataType  = DataType.Interval, DbType   = "interval"                                                              )] public TimeSpan Ttl      { get; set; } // interval
+		[Column("ttl_hot"  , DataType  = DataType.Interval, DbType   = "interval"                                                              )] public TimeSpan TtlHot   { get; set; } // interval
+		[Column("ttl_cold" , DataType  = DataType.Interval, DbType   = "interval"                                                              )] public TimeSpan TtlCold  { get; set; } // interval
 
 		#region Associations
 		/// <summary>

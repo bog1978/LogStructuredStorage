@@ -137,59 +137,6 @@
         }
       }
     },
-    "/file/{bucketId}": {
-      "get": {
-        "tags": [
-          "File"
-        ],
-        "summary": "Список файлов корзины.",
-        "operationId": "GetFiles",
-        "parameters": [
-          {
-            "name": "bucketId",
-            "in": "path",
-            "description": "Идентификатор корзины.",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "pageNumber",
-            "in": "query",
-            "description": "Номер страницы (начиная с 0).",
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            }
-          },
-          {
-            "name": "pageSize",
-            "in": "query",
-            "description": "Размер страницы.",
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/FileDto"
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/file/{bucketId}/{filePath}": {
       "get": {
         "tags": [
@@ -285,6 +232,59 @@
         }
       }
     },
+    "/file/{bucketId}": {
+      "get": {
+        "tags": [
+          "File"
+        ],
+        "summary": "Список файлов корзины.",
+        "operationId": "GetFiles",
+        "parameters": [
+          {
+            "name": "bucketId",
+            "in": "path",
+            "description": "Идентификатор корзины.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "pageNumber",
+            "in": "query",
+            "description": "Номер страницы (начиная с 0).",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "description": "Размер страницы.",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FileDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/node": {
       "get": {
         "tags": [
@@ -323,7 +323,11 @@
             "type": "string",
             "nullable": true
           },
-          "timeToLive": {
+          "ttlHot": {
+            "type": "string",
+            "format": "date-span"
+          },
+          "ttlCold": {
             "type": "string",
             "format": "date-span"
           }
@@ -341,7 +345,11 @@
             "type": "string",
             "nullable": true
           },
-          "timeToLive": {
+          "ttlHot": {
+            "type": "string",
+            "format": "date-span"
+          },
+          "ttlCold": {
             "type": "string",
             "format": "date-span"
           }
@@ -355,7 +363,12 @@
             "type": "string",
             "nullable": true
           },
-          "timeToLive": {
+          "ttlHot": {
+            "type": "string",
+            "format": "date-span",
+            "nullable": true
+          },
+          "ttlCold": {
             "type": "string",
             "format": "date-span",
             "nullable": true

@@ -1,0 +1,5 @@
+﻿ALTER TABLE bucket
+  RENAME COLUMN ttl TO ttl_hot;
+
+ALTER TABLE bucket
+  ADD COLUMN ttl_cold INTERVAL NOT NULL default(INTERVAL '01:00:00');

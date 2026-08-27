@@ -5,8 +5,6 @@ using Storage.Api.DataAccess;
 using Storage.Api.Dto;
 using Storage.Api.Exceptions;
 using Storage.Api.Internal;
-using Storage.Cluster;
-using Storage.Cluster.DataAccess;
 
 namespace Storage.Api.Handlers.Metadata;
 
@@ -32,7 +30,12 @@ internal sealed class UpdateBucketHandler : IEndpointHandler
         CancellationToken token)
     {
         var updated =
-            await clusterDataAccess.UpdateBucketAsync(bucketId, patchDto.NodeId, patchDto.TimeToLive, token)
+            await clusterDataAccess.UpdateBucketAsync(
+                bucketId,
+                patchDto.NodeId,
+                patchDto.TtlHot,
+                patchDto.TtlCold,
+                token)
             ?? throw new BucketNotFoundException(bucketId);
         return TypedResults.Ok(updated.ToDto());
     }
