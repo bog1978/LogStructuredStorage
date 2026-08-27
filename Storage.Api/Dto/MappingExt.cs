@@ -1,4 +1,4 @@
-﻿using Storage.Node;
+﻿using Storage.Cluster;
 
 namespace Storage.Api.Dto;
 

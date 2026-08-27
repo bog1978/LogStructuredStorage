@@ -1,9 +1,9 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using MinimalApi.Hosting.Options;
-using Storage.Node.Impl;
+using Storage.Cluster.Impl;
 
-namespace Storage.Node;
+namespace Storage.Cluster;
 
 public static class NodeInstaller
 {

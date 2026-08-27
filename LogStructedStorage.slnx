@@ -12,7 +12,6 @@
   <Project Path="Storage.Api/Storage.Api.csproj" />
   <Project Path="Storage.Client/Storage.Client.csproj" />
   <Project Path="Storage.Cluster/Storage.Cluster.csproj" />
-  <Project Path="Storage.Node/Storage.Node.csproj" />
   <Project Path="Storage.Tests/Storage.Tests.csproj" />
   <Project Path="Storage.Uploader/Storage.Uploader.csproj" />
 </Solution>

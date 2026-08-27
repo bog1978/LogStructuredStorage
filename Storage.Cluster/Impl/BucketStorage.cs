@@ -1,6 +1,6 @@
 ﻿using System.Collections.Concurrent;
 
-namespace Storage.Node.Impl;
+namespace Storage.Cluster.Impl;
 
 internal sealed class BucketStorage : IBucketStorage
 {

@@ -1,4 +1,4 @@
-﻿namespace Storage.Node.Impl;
+﻿namespace Storage.Cluster.Impl;
 
 internal record PartHeader(
     int PartNumber,

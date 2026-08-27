@@ -3,7 +3,6 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Storage.Cluster.DataAccess;
-using Storage.Node;
 
 namespace Storage.Cluster.Services;
 

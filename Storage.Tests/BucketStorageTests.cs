@@ -1,6 +1,6 @@
 using System.Security.Cryptography;
-using Storage.Node;
-using Storage.Node.Impl;
+using Storage.Cluster;
+using Storage.Cluster.Impl;
 
 namespace Storage.Tests;
 

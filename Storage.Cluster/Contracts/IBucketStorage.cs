@@ -1,4 +1,4 @@
-﻿namespace Storage.Node;
+﻿namespace Storage.Cluster;
 
 public interface IBucketStorage : IDisposable
 {

@@ -3,9 +3,8 @@ using EvolveDb.Dialect;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Npgsql;
-using Storage.Cluster;
 
-namespace MediaArchive.Storage.Metadata;
+namespace Storage.Cluster.DataAccess;
 
 internal sealed class DatabaseInitializer(ILogger<DatabaseInitializer> logger, IOptions<ClusterOptions> options)
 {

@@ -1,6 +1,6 @@
 ﻿using Storage.Cluster.Model;
 
-namespace Storage.Cluster.DataAccess;
+namespace Storage.Cluster;
 
 public interface IClusterDataAccess
 {

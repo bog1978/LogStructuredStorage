@@ -1,7 +1,7 @@
 ﻿using System.Collections.Concurrent;
 using Microsoft.Extensions.Options;
 
-namespace Storage.Node.Impl;
+namespace Storage.Cluster.Impl;
 
 internal sealed class NodeStorage : INodeStorage
 {

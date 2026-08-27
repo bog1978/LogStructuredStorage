@@ -16,11 +16,14 @@
 
     <ItemGroup>
         <ProjectReference Include="..\Lib\MinimalApi.Hosting.Abstractions\MinimalApi.Hosting.Abstractions.csproj"/>
-        <ProjectReference Include="..\Storage.Node\Storage.Node.csproj"/>
     </ItemGroup>
 
     <ItemGroup>
         <EmbeddedResource Include="Migrations\*.sql"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <InternalsVisibleTo Include="Storage.Tests"/>
     </ItemGroup>
 
 </Project>

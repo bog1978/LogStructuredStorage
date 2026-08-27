@@ -8,7 +8,6 @@ using Storage.Api.Exceptions;
 using Storage.Api.Handlers.Metadata;
 using Storage.Cluster;
 using Storage.Cluster.DataAccess;
-using Storage.Node;
 
 namespace Storage.Api.Handlers.File;
 

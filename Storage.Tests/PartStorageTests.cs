@@ -1,6 +1,5 @@
 using System.Security.Cryptography;
-using Storage.Node;
-using Storage.Node.Impl;
+using Storage.Cluster.Impl;
 
 namespace Storage.Tests;
 
@@ -97,7 +96,11 @@ public class PartStorageTests
             var size = Random.Shared.NextInt64(500_000, 5_000_000);
             var wData = new byte[size];
             Random.Shared.NextBytes(wData);
-            Assert.Throws<InvalidOperationException>(() => ps1.TryWrite(wData, out _));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(ps1.TryWrite(wData, out var offset), Is.False);
+                Assert.That(offset, Is.EqualTo(-1));
+            }
         }
     }
 }

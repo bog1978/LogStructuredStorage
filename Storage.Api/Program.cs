@@ -7,7 +7,6 @@ using OpenTelemetry;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Trace;
 using Storage.Cluster;
-using Storage.Node;
 
 namespace Storage.Api;
 

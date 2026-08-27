@@ -1,7 +1,7 @@
 using System.Security.Cryptography;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Storage.Node;
+using Storage.Cluster;
 
 namespace Storage.Tests;
 

@@ -29,7 +29,7 @@
 
 	<ItemGroup>
 		<ProjectReference Include="..\Lib\MinimalApi.Hosting\MinimalApi.Hosting.csproj" />
-		<ProjectReference Include="..\Storage.Node\Storage.Node.csproj" />
+		<ProjectReference Include="..\Storage.Cluster\Storage.Cluster.csproj" />
 	</ItemGroup>
 
 	<ItemGroup>

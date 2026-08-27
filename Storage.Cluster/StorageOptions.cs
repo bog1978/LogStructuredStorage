@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using MinimalApi.Hosting.Options;
 
-namespace Storage.Node;
+namespace Storage.Cluster;
 
 public class StorageOptions : IOptionsBase
 {

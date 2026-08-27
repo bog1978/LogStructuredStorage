@@ -1,4 +1,4 @@
-﻿namespace Storage.Node;
+﻿namespace Storage.Cluster;
 
 public sealed record DataLocation(
     string BucketName,
