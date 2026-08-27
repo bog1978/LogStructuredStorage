@@ -37,7 +37,7 @@ internal class UploadFileHandler : IEndpointHandler
         [FromServices] INodeStorage nodeStorage,
         CancellationToken token)
     {
-        filePath = Uri.UnescapeDataString(filePath);
+        filePath = Uri.UnescapeDataString(filePath).Replace("\\", "/");
 
         var bucket = await clusterDataAccess.GetBucketAsync(bucketId, token);
         if (bucket == null)

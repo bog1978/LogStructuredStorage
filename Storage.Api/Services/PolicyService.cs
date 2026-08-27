@@ -12,7 +12,7 @@ internal class PolicyService(
     INodeStorage nodeStorage) : BackgroundService
 {
     private readonly StorageOptions _options = options.Value;
-    
+
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         while (!stoppingToken.IsCancellationRequested)
@@ -38,6 +38,9 @@ internal class PolicyService(
         var clusterDataAccess = scope.ServiceProvider.GetRequiredService<IClusterDataAccess>();
         var buckets = await clusterDataAccess.GetBucketsAsync(stoppingToken);
         var policyMap = buckets.ToDictionary(x => x.BucketId, x => new RetentionPolicy(x.Ttl));
-        nodeStorage.ApplyRetentionPolicy(x => policyMap[x]);
+        var map = nodeStorage.ApplyRetentionPolicy(x => policyMap[x]);
+        foreach (var (bucket, parts) in map)
+        foreach (var part in parts)
+            await clusterDataAccess.DeleteFilesAsync(_options.NodeId, bucket, part);
     }
 }

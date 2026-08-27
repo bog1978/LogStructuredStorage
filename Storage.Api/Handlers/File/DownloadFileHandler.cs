@@ -38,7 +38,7 @@ internal class DownloadFileHandler : IEndpointHandler
         [FromServices] INodeStorage nodeStorage,
         CancellationToken token)
     {
-        filePath = Uri.UnescapeDataString(filePath);
+        filePath = Uri.UnescapeDataString(filePath).Replace("\\", "/");
         var fileName = Path.GetFileName(filePath);
 
         var file = await clusterDataAccess.GetFileAsync(bucketId, filePath, token);

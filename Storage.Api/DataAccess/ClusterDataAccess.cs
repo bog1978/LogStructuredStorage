@@ -116,4 +116,12 @@ internal class ClusterDataAccess(Cluster.DataAccess.Model.ClusterConnection clus
                 .Value(x => x.HostName, hostName)
                 .InsertAsync(token);
     }
+
+    public async Task DeleteFilesAsync(
+        string nodeId,
+        string bucketId,
+        int partNumber) =>
+        await clusterConnection.Files
+            .Where(x => x.NodeId == nodeId && x.BucketId == bucketId && x.PartId == partNumber)
+            .DeleteAsync();
 }

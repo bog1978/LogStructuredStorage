@@ -32,10 +32,21 @@ internal sealed class NodeStorage : INodeStorage
         _bucketMap.Clear();
     }
 
-    public void ApplyRetentionPolicy(Func<string, RetentionPolicy> policyFunc)
+    public IReadOnlyDictionary<string, List<int>> ApplyRetentionPolicy(Func<string, RetentionPolicy> policyFunc)
     {
+        var result = new Dictionary<string, List<int>>();
         foreach (var bucketStorage in _bucketMap.Values)
-            bucketStorage.ApplyRetentionPolicy(policyFunc(bucketStorage.Name));
+        {
+            var ids = bucketStorage.ApplyRetentionPolicy(policyFunc(bucketStorage.Name));
+            if (!result.TryGetValue(bucketStorage.Name, out var ints))
+            {
+                ints = new List<int>();
+                result.Add(bucketStorage.Name, ints);
+            }
+            ints.AddRange(ids);
+        }
+
+        return result.AsReadOnly();
     }
 
     public void Dispose()

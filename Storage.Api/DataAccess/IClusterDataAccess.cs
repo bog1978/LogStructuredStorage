@@ -2,7 +2,7 @@
 
 namespace Storage.Api.DataAccess;
 
-public interface IClusterDataAccess
+internal interface IClusterDataAccess
 {
     Task<Model.Bucket> CreateBucketAsync(
         string bucketId,
@@ -50,4 +50,9 @@ public interface IClusterDataAccess
         string nodeId,
         string hostName,
         CancellationToken token);
+
+    Task DeleteFilesAsync(
+        string nodeId,
+        string bucketId,
+        int partNumber);
 }

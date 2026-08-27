@@ -57,15 +57,18 @@ internal sealed class BucketStorage : IBucketStorage
             part.Dispose();
     }
 
-    public void ApplyRetentionPolicy(RetentionPolicy policy)
+    public IReadOnlyList<int> ApplyRetentionPolicy(RetentionPolicy policy)
     {
+        var removed = new List<int>();
         var parts = _partsMap.Values.ToList();
         foreach (var part in parts)
             if (!part.CanWrite && part.MaxTime < DateTimeOffset.Now + policy.Ttl)
             {
                 part.Delete();
-                _partsMap.Remove(part.PartNumber, out var removed);
+                if(_partsMap.Remove(part.PartNumber, out var p))
+                    removed.Add(p.PartNumber);
             }
+        return removed.AsReadOnly();
     }
 
     private void LoadParts()

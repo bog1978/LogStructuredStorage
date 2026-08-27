@@ -35,8 +35,8 @@ internal sealed class GetFilesHandler : IEndpointHandler
     {
         var files = await clusterDataAccess.GetFilesAsync(
             bucketId,
-            pageNumber ?? 100,
-            pageSize ?? 0,
+            pageNumber ?? 0,
+            pageSize ?? 100,
             token);
         return TypedResults.Ok(files
             .Select(x => x.ToDto())
