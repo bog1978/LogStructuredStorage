@@ -4,7 +4,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Storage.Cluster.DataAccess;
-using Storage.Cluster.Model;
+using Storage.Cluster.DataAccess.Model;
 using Storage.Cluster.Options;
 using Storage.Cluster.Services;
 

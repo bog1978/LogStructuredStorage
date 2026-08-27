@@ -11,7 +11,7 @@ using System;
 
 #pragma warning disable 1573, 1591
 
-namespace Storage.Cluster.Model
+namespace Storage.Cluster.DataAccess.Model
 {
 	[Table("bucket", Schema = "public")]
 	public partial class Bucket

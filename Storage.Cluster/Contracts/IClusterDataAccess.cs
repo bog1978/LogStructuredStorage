@@ -1,26 +1,26 @@
-﻿using Storage.Cluster.Model;
+﻿using Model = Storage.Cluster.DataAccess.Model;
 
 namespace Storage.Cluster;
 
 public interface IClusterDataAccess
 {
-    Task<Bucket> CreateBucketAsync(
+    Task<Model.Bucket> CreateBucketAsync(
         string bucketId,
         string nodeId,
         TimeSpan timeToLive,
         CancellationToken token);
 
-    Task<Bucket?> GetBucketAsync(
+    Task<Model.Bucket?> GetBucketAsync(
         string bucketId,
         CancellationToken token);
 
-    Task<IReadOnlyList<Bucket>> GetBucketsAsync(
+    Task<IReadOnlyList<Model.Bucket>> GetBucketsAsync(
         CancellationToken token);
 
     Task<IReadOnlyList<Model.Node>> GetNodesAsync(
         CancellationToken token);
 
-    Task<Bucket?> UpdateBucketAsync(
+    Task<Model.Bucket?> UpdateBucketAsync(
         string bucketId,
         string? nodeId,
         TimeSpan? timeToLive,

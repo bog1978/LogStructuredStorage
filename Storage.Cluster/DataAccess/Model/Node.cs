@@ -11,7 +11,7 @@ using System.Collections.Generic;
 
 #pragma warning disable 1573, 1591
 
-namespace Storage.Cluster.Model
+namespace Storage.Cluster.DataAccess.Model
 {
 	[Table("node", Schema = "public")]
 	public partial class Node

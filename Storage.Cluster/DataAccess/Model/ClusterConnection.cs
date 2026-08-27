@@ -10,7 +10,7 @@ using LinqToDB.Data;
 
 #pragma warning disable 1573, 1591
 
-namespace Storage.Cluster.Model
+namespace Storage.Cluster.DataAccess.Model
 {
 	public partial class ClusterConnection : DataConnection
 	{

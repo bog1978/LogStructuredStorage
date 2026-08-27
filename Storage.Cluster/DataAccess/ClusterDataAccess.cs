@@ -1,12 +1,11 @@
 ﻿using LinqToDB;
 using LinqToDB.Async;
-using Storage.Cluster.Model;
 
 namespace Storage.Cluster.DataAccess;
 
-internal class ClusterDataAccess(ClusterConnection clusterConnection) : IClusterDataAccess
+internal class ClusterDataAccess(Model.ClusterConnection clusterConnection) : IClusterDataAccess
 {
-    public async Task<Bucket> CreateBucketAsync(
+    public async Task<Model.Bucket> CreateBucketAsync(
         string bucketId,
         string nodeId,
         TimeSpan timeToLive,
@@ -20,14 +19,14 @@ internal class ClusterDataAccess(ClusterConnection clusterConnection) : ICluster
             .Value(x => x.Ttl, timeToLive)
             .InsertWithOutputAsync(token);
 
-    public async Task<Bucket?> GetBucketAsync(
+    public async Task<Model.Bucket?> GetBucketAsync(
         string bucketId,
         CancellationToken token) =>
         await clusterConnection.Buckets
             .Where(x => x.BucketId == bucketId)
             .SingleOrDefaultAsync(token);
 
-    public async Task<IReadOnlyList<Bucket>> GetBucketsAsync(
+    public async Task<IReadOnlyList<Model.Bucket>> GetBucketsAsync(
         CancellationToken token) =>
         await clusterConnection.Buckets
             .ToListAsync(token);
@@ -37,7 +36,7 @@ internal class ClusterDataAccess(ClusterConnection clusterConnection) : ICluster
         await clusterConnection.Nodes
             .ToListAsync(token);
 
-    public async Task<Bucket?> UpdateBucketAsync(
+    public async Task<Model.Bucket?> UpdateBucketAsync(
         string bucketId,
         string? nodeId,
         TimeSpan? timeToLive,

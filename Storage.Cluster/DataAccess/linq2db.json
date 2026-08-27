@@ -43,10 +43,10 @@
       "public"
     ],
     "exclude-tables": [
-      /*{
-        "schema": "media",
-        "name": "segment"
-      }*/
+      {
+        "schema": "public",
+        "name": "__evolve__"
+      }
     ]
   }
 }
