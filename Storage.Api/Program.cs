@@ -5,8 +5,8 @@ using OpenTelemetry;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Trace;
 using Storage.Api.Internal;
+using Storage.Api.Options;
 using Storage.Cluster;
-using Storage.Cluster.Options;
 
 namespace Storage.Api;
 
@@ -32,7 +32,7 @@ internal sealed class Program
                 .AddProcessInstrumentation());
 
         // Настройка конфигурации API
-        var apiOptions = builder.Configuration.GetOptions<ApiOptions>();
+        var apiOptions = builder.Configuration.GetOptions<StorageOptions>();
 
         // Настройка Swagger
         builder.Services.AddEndpointsApiExplorer();
@@ -58,7 +58,6 @@ internal sealed class Program
                     .AllowAnyMethod()))
             .AddApiHandlers()
             .AddCluster(builder.Configuration)
-            .AddNodeStorage(builder.Configuration)
             .AddCors(options => options
                 .AddPolicy("all", policy => policy
                     .AllowAnyOrigin()

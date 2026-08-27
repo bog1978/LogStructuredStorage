@@ -1,5 +1,5 @@
 using System.Data.Common;
-using Storage.Cluster.Exceptions;
+using Storage.Api.Exceptions;
 
 namespace Storage.Api.Internal;
 

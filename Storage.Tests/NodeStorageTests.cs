@@ -1,6 +1,8 @@
 using System.Security.Cryptography;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Storage.Api;
+using Storage.Api.Lss;
 using Storage.Cluster;
 
 namespace Storage.Tests;
@@ -21,7 +23,7 @@ public sealed class NodeStorageTests : IDisposable
     {
         var builder = Host.CreateApplicationBuilder();
         var services = builder.Services;
-        services.AddNodeStorage(builder.Configuration);
+        services.AddCluster(builder.Configuration);
         _host = builder.Build();
     }
 

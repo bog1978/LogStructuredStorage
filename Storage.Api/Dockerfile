@@ -13,7 +13,6 @@ ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
 COPY ["Directory.Build.props", "."]
 COPY ["Storage.Api/Storage.Api.csproj", "Storage.Api/"]
-COPY ["Storage.Cluster/Storage.Cluster.csproj", "Storage.Cluster/"]
 RUN dotnet restore "./Storage.Api/Storage.Api.csproj"
 COPY . .
 WORKDIR "/src/Storage.Api"

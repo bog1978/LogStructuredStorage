@@ -1,5 +1,5 @@
 using System.Security.Cryptography;
-using Storage.Cluster.Impl;
+using Storage.Api.Lss;
 
 namespace Storage.Tests;
 

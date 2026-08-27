@@ -2,12 +2,15 @@
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
+using Storage.Api.DataAccess;
 using Storage.Api.Dto;
+using Storage.Api.Exceptions;
 using Storage.Api.Handlers.Metadata;
 using Storage.Api.Internal;
+using Storage.Api.Lss;
+using Storage.Api.Options;
 using Storage.Cluster;
 using Storage.Cluster.DataAccess;
-using Storage.Cluster.Exceptions;
 
 namespace Storage.Api.Handlers.File;
 
@@ -28,7 +31,7 @@ internal class UploadFileHandler : IEndpointHandler
         [FromRoute] string bucketId,
         [FromRoute] string filePath,
         [FromForm] IFormFile formFile,
-        [FromServices] IOptions<ClusterOptions> options,
+        [FromServices] IOptions<StorageOptions> options,
         [FromServices] ILogger<GetBucketsHandler> logger,
         [FromServices] IClusterDataAccess clusterDataAccess,
         [FromServices] INodeStorage nodeStorage,
