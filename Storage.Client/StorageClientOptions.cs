@@ -1,9 +1,8 @@
 ﻿using System.ComponentModel.DataAnnotations;
-using MinimalApi.Hosting.Options;
 
 namespace Storage.Client;
 
-public class StorageClientOptions : IOptionsBase
+public class StorageClientOptions
 {
     public static string SectionName => "ClientOptions";
     

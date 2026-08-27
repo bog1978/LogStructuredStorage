@@ -16,7 +16,6 @@ COPY ["Storage.Api/Storage.Api.csproj", "Storage.Api/"]
 COPY ["Lib/MinimalApi.Hosting/MinimalApi.Hosting.csproj", "Lib/MinimalApi.Hosting/"]
 COPY ["Lib/MinimalApi.Hosting.Abstractions/MinimalApi.Hosting.Abstractions.csproj", "Lib/MinimalApi.Hosting.Abstractions/"]
 COPY ["Storage.Cluster/Storage.Cluster.csproj", "Storage.Cluster/"]
-COPY ["Storage.Node/Storage.Node.csproj", "Storage.Node/"]
 RUN dotnet restore "./Storage.Api/Storage.Api.csproj"
 COPY . .
 WORKDIR "/src/Storage.Api"
