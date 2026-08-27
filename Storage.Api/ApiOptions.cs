@@ -1,5 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
-using MinimalApi.Hosting.Options;
+using Storage.Cluster.Options;
 
 namespace Storage.Api;
 

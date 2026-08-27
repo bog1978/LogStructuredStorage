@@ -1,6 +1,6 @@
 using System.Runtime.CompilerServices;
 
-namespace MinimalApi.Hosting.Exceptions;
+namespace Storage.Cluster.Exceptions;
 
 public abstract class ResourceNotFoundException([InterpolatedStringHandlerArgument] ref ExceptionMessageInterpolatedStringHandler handler)
     : ProblemDetailsException(ref handler)

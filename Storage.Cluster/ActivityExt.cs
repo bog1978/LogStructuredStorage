@@ -1,6 +1,6 @@
 ﻿using System.Diagnostics;
 
-namespace MinimalApi.Hosting;
+namespace Storage.Cluster;
 
 /// <summary>
 /// Набор вспомогательных методов для работы с Activity

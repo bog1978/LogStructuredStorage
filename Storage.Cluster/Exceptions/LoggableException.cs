@@ -3,7 +3,7 @@
 using System.Runtime.CompilerServices;
 using Microsoft.Extensions.Logging;
 
-namespace MinimalApi.Hosting.Exceptions;
+namespace Storage.Cluster.Exceptions;
 
 /// <summary>
 /// Базовый тип исключений с поддержкой структурного лога.

@@ -1,9 +1,7 @@
 using System.Data.Common;
-using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Logging;
-using MinimalApi.Hosting.Exceptions;
+using Storage.Cluster.Exceptions;
 
-namespace MinimalApi.Hosting.Filters;
+namespace Storage.Api.Internal;
 
 /// <summary>
 /// Ловит исключения типа <see cref="LoggableException"/>, логирует их и прокидывает дальше.

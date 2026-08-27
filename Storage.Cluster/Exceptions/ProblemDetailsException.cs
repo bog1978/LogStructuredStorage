@@ -1,6 +1,6 @@
 using System.Runtime.CompilerServices;
 
-namespace MinimalApi.Hosting.Exceptions;
+namespace Storage.Cluster.Exceptions;
 
 /// <summary>
 /// Базовый тип исключений, которые должны быть преобразованы

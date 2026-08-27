@@ -2,7 +2,7 @@
 using System.Runtime.CompilerServices;
 using System.Text;
 
-namespace MinimalApi.Hosting
+namespace Storage.Cluster
 {
     /// <summary>
     /// Обработчик интерполированной строки. Делает 3 вещи:<br/>

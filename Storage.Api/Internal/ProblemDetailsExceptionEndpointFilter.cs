@@ -1,8 +1,7 @@
 using System.Data.Common;
-using Microsoft.AspNetCore.Http;
-using MinimalApi.Hosting.Exceptions;
+using Storage.Cluster.Exceptions;
 
-namespace MinimalApi.Hosting.Filters;
+namespace Storage.Api.Internal;
 
 /// <summary>
 /// Ловит исключения типа <see cref="ProblemDetailsException"/>, преобразует их

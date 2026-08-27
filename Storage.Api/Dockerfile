@@ -13,8 +13,6 @@ ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
 COPY ["Directory.Build.props", "."]
 COPY ["Storage.Api/Storage.Api.csproj", "Storage.Api/"]
-COPY ["Lib/MinimalApi.Hosting/MinimalApi.Hosting.csproj", "Lib/MinimalApi.Hosting/"]
-COPY ["Lib/MinimalApi.Hosting.Abstractions/MinimalApi.Hosting.Abstractions.csproj", "Lib/MinimalApi.Hosting.Abstractions/"]
 COPY ["Storage.Cluster/Storage.Cluster.csproj", "Storage.Cluster/"]
 RUN dotnet restore "./Storage.Api/Storage.Api.csproj"
 COPY . .

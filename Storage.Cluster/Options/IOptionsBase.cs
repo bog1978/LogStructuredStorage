@@ -1,4 +1,4 @@
-namespace MinimalApi.Hosting.Options;
+namespace Storage.Cluster.Options;
 
 public interface IOptionsBase
 {

@@ -1,7 +1,4 @@
-﻿using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Routing;
-
-namespace MinimalApi.Hosting;
+﻿namespace Storage.Api.Internal;
 
 /// <summary>
 /// Маркерный интерфейс для всех обработчиков конечных точек.

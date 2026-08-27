@@ -1,8 +1,4 @@
 <Solution>
-  <Folder Name="/Lib/">
-    <Project Path="Lib/MinimalApi.Hosting.Abstractions/MinimalApi.Hosting.Abstractions.csproj" />
-    <Project Path="Lib/MinimalApi.Hosting/MinimalApi.Hosting.csproj" />
-  </Folder>
   <Folder Name="/Solution Items/">
     <File Path="Directory.Build.props" />
   </Folder>

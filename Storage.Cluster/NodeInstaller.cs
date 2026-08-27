@@ -1,7 +1,7 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using MinimalApi.Hosting.Options;
 using Storage.Cluster.Impl;
+using Storage.Cluster.Options;
 
 namespace Storage.Cluster;
 

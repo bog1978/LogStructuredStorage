@@ -4,7 +4,7 @@ using System.Text;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace MinimalApi.Hosting.Options;
+namespace Storage.Cluster.Options;
 
 public static class OptionsExtensions
 {

@@ -1,14 +1,9 @@
 ﻿using System.Globalization;
 using System.Reflection;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
-using Microsoft.AspNetCore.Routing;
-using Microsoft.Extensions.DependencyInjection;
-using MinimalApi.Hosting.Filters;
 using static System.Reflection.BindingFlags;
 
-namespace MinimalApi.Hosting;
+namespace Storage.Api.Internal;
 
 public static class HandlerInstaller
 {

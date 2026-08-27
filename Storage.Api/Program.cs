@@ -1,12 +1,12 @@
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.OpenApi;
-using MinimalApi.Hosting;
-using MinimalApi.Hosting.Options;
 using Npgsql;
 using OpenTelemetry;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Trace;
+using Storage.Api.Internal;
 using Storage.Cluster;
+using Storage.Cluster.Options;
 
 namespace Storage.Api;
 

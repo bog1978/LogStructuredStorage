@@ -3,9 +3,9 @@ using LinqToDB.Data;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using MinimalApi.Hosting.Options;
 using Storage.Cluster.DataAccess;
 using Storage.Cluster.Model;
+using Storage.Cluster.Options;
 using Storage.Cluster.Services;
 
 namespace Storage.Cluster;

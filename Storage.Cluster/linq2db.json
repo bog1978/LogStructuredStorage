@@ -3,7 +3,7 @@
     "output": "Model",
     "overwrite": true,
     "provider": "PostgreSQL",
-    "connection": "Host=localhost;Port=5432;Database=lss_cluster;Username=appuser;Password=apppassword;Include Error Detail=True;"
+    "connection": "Host=localhost;Port=6432;Database=lss_cluster;Username=lss_user;Password=lss_password;Include Error Detail=True;"
   },
   "dataModel": {
     "add-associations": true,
@@ -33,7 +33,7 @@
   "code": {
     "nrt": false,
     "generated-suffix": false,
-    "namespace": "Storage.Cluster.Model"
+    "namespace": "Storage.Cluster.DataAccess.Model"
   },
   "schema": {
     "include-schemas": [
