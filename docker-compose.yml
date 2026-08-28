@@ -8,7 +8,7 @@ services:
     environment:
       # Настройки OpenTelemetry
       OTEL_RESOURCE_ATTRIBUTES: ""
-      OTEL_EXPORTER_OTLP_ENDPOINT: "http://seq/ingest/otlp"
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://seq:5341/ingest/otlp"
       OTEL_EXPORTER_OTLP_TIMEOUT: "10000"
       OTEL_EXPORTER_OTLP_PROTOCOL: "http/protobuf"
       OTEL_METRIC_EXPORT_INTERVAL: 15000

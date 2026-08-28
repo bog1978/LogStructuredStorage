@@ -70,7 +70,7 @@ public sealed class NodeStorageTests : IDisposable
     [Test, Order(2)]
     public void PolicyTest()
     {
-        var policy = new RetentionPolicy(TimeSpan.Zero);
+        var policy = new RetentionPolicy(TimeSpan.Zero, TimeSpan.Zero);
         var bucketStorage = _host.Services.GetRequiredService<INodeStorage>();
         bucketStorage.ApplyRetentionPolicy(_ => policy);
     }

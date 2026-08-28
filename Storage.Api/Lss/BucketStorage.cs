@@ -17,8 +17,8 @@ internal sealed class BucketStorage : IBucketStorage
         _partSizeMb = partSizeMb;
         _bucketHotDir = Path.Combine(hotDir, bucketName);
         _bucketColdDir = Path.Combine(coldDir, bucketName);
-        LoadParts(_bucketHotDir);
-        LoadParts(_bucketColdDir);
+        LoadParts(_bucketHotDir, true);
+        LoadParts(_bucketColdDir, false);
         _partStorage ??= AddActivePart();
     }
 
@@ -34,7 +34,7 @@ internal sealed class BucketStorage : IBucketStorage
             ? throw new InvalidOperationException("Failed to write data")
             : new(_bucketName, _partStorage.PartNumber, offset);
     }
-    
+
     public string Name => _bucketName;
 
     public byte[] Read(DataLocation location) =>
@@ -62,16 +62,30 @@ internal sealed class BucketStorage : IBucketStorage
         var removed = new List<int>();
         var parts = _partsMap.Values.ToList();
         foreach (var part in parts)
-            if (!part.CanWrite && part.MaxTime < DateTimeOffset.Now + policy.Ttl)
+        {
+            if (part.CanWrite)
+                continue;
+            // Полное время жизни складывается из горячего и холодного.
+            if (part.MaxTime + policy.TtlHot + policy.TtlCold < DateTimeOffset.Now)
             {
                 part.Delete();
-                if(_partsMap.Remove(part.PartNumber, out var p))
+                if (_partsMap.Remove(part.PartNumber, out var p))
                     removed.Add(p.PartNumber);
             }
+            else if (part.IsHot && part.MaxTime + policy.TtlHot < DateTimeOffset.Now)
+            {
+                part.MakeCold(_bucketColdDir);
+            }
+            else
+            {
+                // Пускай еще побудет тепленьким.
+            }
+        }
+
         return removed.AsReadOnly();
     }
 
-    private void LoadParts(string bucketDir)
+    private void LoadParts(string bucketDir, bool isHot)
     {
         if (!Directory.Exists(bucketDir))
         {
@@ -83,7 +97,7 @@ internal sealed class BucketStorage : IBucketStorage
             .EnumerateFiles(bucketDir, "*.lss", SearchOption.AllDirectories);
         foreach (var partFile in partFiles)
         {
-            var part = new PartStorage(partFile);
+            var part = new PartStorage(partFile, isHot);
             if (!_partsMap.TryAdd(part.PartNumber, part))
                 throw new InvalidOperationException($"Duplicate part number {part.PartNumber}");
             if (!part.CanWrite)

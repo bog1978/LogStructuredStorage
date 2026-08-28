@@ -1,3 +1,3 @@
 ﻿namespace Storage.Api.Lss;
 
-public sealed record RetentionPolicy(TimeSpan Ttl);
+internal sealed record RetentionPolicy(TimeSpan TtlHot, TimeSpan TtlCold);

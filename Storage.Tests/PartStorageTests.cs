@@ -47,7 +47,7 @@ public class PartStorageTests
             }
         }
 
-        using (var ps1 = new PartStorage(partPath))
+        using (var ps1 = new PartStorage(partPath, true))
         {
             while (true)
             {
@@ -61,7 +61,7 @@ public class PartStorageTests
             }
         }
 
-        using (var ps2 = new PartStorage(partPath))
+        using (var ps2 = new PartStorage(partPath, true))
         {
             foreach (var (offset, wHash) in offsetList)
             {
@@ -91,7 +91,7 @@ public class PartStorageTests
             }
         }
 
-        using (var ps1 = new PartStorage(partPath))
+        using (var ps1 = new PartStorage(partPath, true))
         {
             var size = Random.Shared.NextInt64(500_000, 5_000_000);
             var wData = new byte[size];
