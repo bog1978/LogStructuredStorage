@@ -6,15 +6,19 @@ namespace Storage.Tests;
 
 public class BucketStorageTests
 {
-    private const string RootPath = @"D:\\Share\lss\bucket";
+    private const string HotPath = @"D:\\Share\lss\hot\bucket";
+    private const string ColdPath = @"D:\\Share\lss\cold\bucket";
     private const string BucketName = "test_bucket";
 
     [OneTimeSetUp]
     public void Setup()
     {
-        if (Directory.Exists(RootPath))
-            Directory.Delete(RootPath, true);
-        Directory.CreateDirectory(RootPath);
+        if (Directory.Exists(HotPath))
+            Directory.Delete(HotPath, true);
+        Directory.CreateDirectory(HotPath);
+        if (Directory.Exists(ColdPath))
+            Directory.Delete(ColdPath, true);
+        Directory.CreateDirectory(ColdPath);
     }
 
     [OneTimeTearDown]
@@ -23,8 +27,10 @@ public class BucketStorageTests
         GC.Collect();
         GC.WaitForPendingFinalizers();
         GC.Collect();
-        if (Directory.Exists(RootPath))
-            Directory.Delete(RootPath, true);
+        if (Directory.Exists(HotPath))
+            Directory.Delete(HotPath, true);
+        if (Directory.Exists(ColdPath))
+            Directory.Delete(ColdPath, true);
     }
 
     [Test]
@@ -32,7 +38,7 @@ public class BucketStorageTests
     {
         var locationList = new List<(DataLocation Location, string Hash)>();
 
-        using (var ps0 = new BucketStorage(RootPath, BucketName, 100 * 1024 * 1024))
+        using (var ps0 = new BucketStorage(HotPath, ColdPath, BucketName, 100))
         {
             for (var i = 0; i < 100; i++)
             {
@@ -45,7 +51,7 @@ public class BucketStorageTests
             }
         }
 
-        using (var ps2 = new BucketStorage(RootPath, BucketName, 100_000_000))
+        using (var ps2 = new BucketStorage(HotPath, ColdPath, BucketName, 100))
         {
             foreach (var (location, wHash) in locationList)
             {

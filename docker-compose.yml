@@ -21,8 +21,9 @@ services:
       StorageOptions__BodySizeLimitMb: 16
       StorageOptions__ConnectionString: Host=db;Port=5432;Database=lss_cluster;Username=lss_user;Password=lss_password;Include Error Detail=True;
       StorageOptions__NodeId: node1
-      StorageOptions__RootPath: /mnt/lssData/node1/hot
-      StorageOptions__PartSize: 104857600
+      StorageOptions__HotPath: /mnt/lssData/node1/hot
+      StorageOptions__ColdPath: /mnt/lssData/node1/cold
+      StorageOptions__PartSizeMb: 100
     ports:
       - "9086:8080"
     volumes:

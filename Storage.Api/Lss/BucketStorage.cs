@@ -5,20 +5,20 @@ namespace Storage.Api.Lss;
 internal sealed class BucketStorage : IBucketStorage
 {
     private readonly string _bucketName;
-    private readonly int _partSize;
-    private readonly string _bucketDir;
+    private readonly int _partSizeMb;
+    private readonly string _bucketHotDir;
+    private readonly string _bucketColdDir;
     private readonly ConcurrentDictionary<int, PartStorage> _partsMap = new();
     private PartStorage _partStorage;
 
-    public BucketStorage(string rootDir, string bucketName, int partSize)
+    public BucketStorage(string hotDir, string coldDir, string bucketName, int partSizeMb)
     {
         _bucketName = bucketName;
-        _partSize = partSize;
-        _bucketDir = Path.Combine(rootDir, bucketName);
-        if (!Directory.Exists(_bucketDir))
-            Directory.CreateDirectory(_bucketDir);
-
-        LoadParts();
+        _partSizeMb = partSizeMb;
+        _bucketHotDir = Path.Combine(hotDir, bucketName);
+        _bucketColdDir = Path.Combine(coldDir, bucketName);
+        LoadParts(_bucketHotDir);
+        LoadParts(_bucketColdDir);
         _partStorage ??= AddActivePart();
     }
 
@@ -47,8 +47,8 @@ internal sealed class BucketStorage : IBucketStorage
         foreach (var part in _partsMap.Values)
             part.Delete();
         _partsMap.Clear();
-        if (Directory.Exists(_bucketDir))
-            Directory.Delete(_bucketDir, true);
+        if (Directory.Exists(_bucketHotDir))
+            Directory.Delete(_bucketHotDir, true);
     }
 
     public void Dispose()
@@ -71,10 +71,16 @@ internal sealed class BucketStorage : IBucketStorage
         return removed.AsReadOnly();
     }
 
-    private void LoadParts()
+    private void LoadParts(string bucketDir)
     {
+        if (!Directory.Exists(bucketDir))
+        {
+            Directory.CreateDirectory(bucketDir);
+            return;
+        }
+
         var partFiles = Directory
-            .EnumerateFiles(_bucketDir, "*.lss", SearchOption.AllDirectories);
+            .EnumerateFiles(bucketDir, "*.lss", SearchOption.AllDirectories);
         foreach (var partFile in partFiles)
         {
             var part = new PartStorage(partFile);
@@ -89,12 +95,13 @@ internal sealed class BucketStorage : IBucketStorage
         }
     }
 
+
     private PartStorage AddActivePart()
     {
         var nextPartNumber = _partsMap.Keys.Count > 0
             ? _partsMap.Keys.Max() + 1
             : 0;
-        var partStorage = new PartStorage(_bucketDir, nextPartNumber, _partSize);
+        var partStorage = new PartStorage(_bucketHotDir, nextPartNumber, _partSizeMb);
         if (!_partsMap.TryAdd(nextPartNumber, partStorage))
             throw new InvalidOperationException($"Duplicate part number {nextPartNumber}");
         return partStorage;

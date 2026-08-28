@@ -2,15 +2,18 @@
 
 namespace Storage.Api.Options;
 
-public class StorageOptions : IOptionsBase
+internal class StorageOptions : IOptionsBase
 {
     public static string SectionName => nameof(StorageOptions);
     
     [Required(AllowEmptyStrings = false)]
-    public string RootPath { get; set; } = string.Empty;
+    public string HotPath { get; set; } = string.Empty;
 
-    [Required, Range(1024 * 1024 * 100, 1024 * 1024 * 1024)]
-    public int PartSize { get; set; } = 1024 * 1024 * 100;
+    [Required(AllowEmptyStrings = false)]
+    public string ColdPath { get; set; } = string.Empty;
+
+    [Required, Range(100, 1024)]
+    public int PartSizeMb { get; set; } = 100;
     
     [Required(AllowEmptyStrings = false)] 
     public string ConnectionString { get; set; } = string.Empty;

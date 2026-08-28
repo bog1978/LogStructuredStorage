@@ -20,13 +20,13 @@ internal sealed class PartStorage : IDisposable
         }
     }
 
-    public PartStorage(string rootPath, int partNumber, int partSize)
+    public PartStorage(string rootPath, int partNumber, int partSizeMb)
     {
         if (!Directory.Exists(rootPath))
             Directory.CreateDirectory(rootPath);
         PartPath = Path.Combine(rootPath, $"{partNumber:00000000}.lss");
         var stream = new FileStream(PartPath, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.ReadWrite);
-        stream.SetLength(partSize);
+        stream.SetLength(partSizeMb * 1024 * 1024);
         _writer = new BinaryWriter(stream);
         _partHeader = _writer.CreateHeader(partNumber);
     }

@@ -23,7 +23,11 @@ internal sealed class NodeStorage : INodeStorage
             : throw new InvalidOperationException("Bucket not found");
 
     public IBucketStorage GetOrCreateBucket(string bucketName) =>
-        _bucketMap.GetOrAdd(bucketName, key => new BucketStorage(_options.RootPath, key, _options.PartSize));
+        _bucketMap.GetOrAdd(bucketName, key => new(
+            _options.HotPath,
+            _options.ColdPath,
+            key,
+            _options.PartSizeMb));
 
     public void DeleteAll()
     {
@@ -43,6 +47,7 @@ internal sealed class NodeStorage : INodeStorage
                 ints = new List<int>();
                 result.Add(bucketStorage.Name, ints);
             }
+
             ints.AddRange(ids);
         }
 
@@ -57,13 +62,17 @@ internal sealed class NodeStorage : INodeStorage
 
     private void LoadBuckets()
     {
-        if (!Directory.Exists(_options.RootPath))
-            Directory.CreateDirectory(_options.RootPath);
-        var bucketDirs = Directory.EnumerateDirectories(_options.RootPath);
+        if (!Directory.Exists(_options.HotPath))
+            Directory.CreateDirectory(_options.HotPath);
+        var bucketDirs = Directory.EnumerateDirectories(_options.HotPath);
         foreach (var bucketDir in bucketDirs)
         {
             var bucketName = Path.GetFileName(bucketDir);
-            var bucketStorage = new BucketStorage(_options.RootPath, bucketName, _options.PartSize);
+            var bucketStorage = new BucketStorage(
+                _options.HotPath,
+                _options.ColdPath,
+                bucketName,
+                _options.PartSizeMb);
             if (!_bucketMap.TryAdd(bucketName, bucketStorage))
                 throw new InvalidOperationException($"Bucket {bucketName} already exists");
         }
