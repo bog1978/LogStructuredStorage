@@ -26,12 +26,6 @@ namespace Storage.Cluster.DataAccess.Model
 		/// </summary>
 		[Association(ThisKey = nameof(NodeName), OtherKey = nameof(Bucket.NodeId))]
 		public IEnumerable<Bucket> Buckets { get; set; }
-
-		/// <summary>
-		/// file_node_id_fkey backreference
-		/// </summary>
-		[Association(ThisKey = nameof(NodeName), OtherKey = nameof(File.NodeId))]
-		public IEnumerable<File> Files { get; set; }
 		#endregion
 	}
 }

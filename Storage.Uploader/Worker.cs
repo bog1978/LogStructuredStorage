@@ -28,12 +28,11 @@ internal class Worker(ILogger<Worker> logger, IStorageApi client)
             for (var i = 0; i < 100; i++)
             {
                 var fileName = $"file_{i}.dat";
-                var filePath = Path.Combine("test_files", fileName);
                 var size = Random.Shared.Next(1024 * 1024 / 4, 1024 * 1024 * 4);
                 var data = new byte[size];
                 Random.Shared.NextBytes(data);
                 using var stream = new MemoryStream(data);
-                var file = await client.UploadFileAsync("test-bucket", filePath, new StreamPart(stream, fileName));
+                var file = await client.UploadFileAsync("test-bucket", new StreamPart(stream, fileName));
             }
         }
         catch (Exception ex)

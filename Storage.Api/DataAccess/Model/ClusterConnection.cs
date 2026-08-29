@@ -34,7 +34,6 @@ namespace Storage.Cluster.DataAccess.Model
 		partial void InitDataContext();
 
 		public ITable<Bucket> Buckets => this.GetTable<Bucket>();
-		public ITable<File>   Files   => this.GetTable<File>();
 		public ITable<Node>   Nodes   => this.GetTable<Node>();
 	}
 }

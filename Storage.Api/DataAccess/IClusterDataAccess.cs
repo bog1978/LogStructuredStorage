@@ -28,33 +28,8 @@ internal interface IClusterDataAccess
         TimeSpan? ttlCold,
         CancellationToken token);
 
-    Task<Model.File?> GetFileAsync(
-        string bucketId,
-        string filePath,
-        CancellationToken token);
-
-    Task<IReadOnlyList<Model.File>> GetFilesAsync(
-        string bucketId,
-        int pageNumber,
-        int pageSize,
-        CancellationToken token);
-
-    Task<Model.File> CreateFileAsync(
-        string bucketId,
-        string nodeId,
-        string filePath,
-        long partOffset,
-        int partNumber,
-        long fileSize,
-        CancellationToken token);
-
     Task<Model.Node> RegisterNodeAsync(
         string nodeName,
         string hostName,
         CancellationToken token);
-
-    Task DeleteFilesAsync(
-        string nodeId,
-        string bucketId,
-        int partNumber);
 }

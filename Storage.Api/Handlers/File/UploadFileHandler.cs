@@ -9,8 +9,6 @@ using Storage.Api.Handlers.Metadata;
 using Storage.Api.Internal;
 using Storage.Api.Lss;
 using Storage.Api.Options;
-using Storage.Cluster;
-using Storage.Cluster.DataAccess;
 
 namespace Storage.Api.Handlers.File;
 
@@ -20,16 +18,15 @@ internal class UploadFileHandler : IEndpointHandler
     public static IEndpointConventionBuilder[] ConfigureEndpoint(IEndpointRouteBuilder builder) =>
     [
         builder
-            .MapPost("/file/{bucketId}/{**filePath}", UploadFileAsync)
+            .MapPost("/file/{bucketId}", UploadFileAsync)
             .DisableAntiforgery()
             .WithName("UploadFile")
             .WithTags("File")
     ];
 
     /// <summary>Загрузка файла в хранилище.</summary>
-    private static async Task<Created<FileDto>> UploadFileAsync(
+    private static async Task<Created<string>> UploadFileAsync(
         [FromRoute] string bucketId,
-        [FromRoute] string filePath,
         [FromForm] IFormFile formFile,
         [FromServices] IOptions<StorageOptions> options,
         [FromServices] ILogger<GetBucketsHandler> logger,
@@ -37,8 +34,6 @@ internal class UploadFileHandler : IEndpointHandler
         [FromServices] INodeStorage nodeStorage,
         CancellationToken token)
     {
-        filePath = Uri.UnescapeDataString(filePath).Replace("\\", "/");
-
         var bucket = await clusterDataAccess.GetBucketAsync(bucketId, token);
         if (bucket == null)
             throw new BucketNotFoundException(bucketId);
@@ -50,24 +45,11 @@ internal class UploadFileHandler : IEndpointHandler
         await formFile.CopyToAsync(ms, token);
 
         var bucketStorage = nodeStorage.GetOrCreateBucket(bucket.BucketName);
-
         var location = bucketStorage.Write(ms.ToArray());
-
-        var file = await clusterDataAccess.CreateFileAsync(
-            bucket.BucketName,
-            bucket.NodeId,
-            filePath,
-            location.Offset,
-            location.PartNumber,
-            formFile.Length,
-            token);
-
-        var fileDto = file.ToDto();
+        var fileKey = MappingExt.GetFileKey(options.Value.NodeName, bucketId, location.PartNumber, location.Offset);
         
-        logger.LogInformation("File uploaded: {filePath}. Key: {key}", filePath, fileDto.Key);
+        logger.LogInformation("File uploaded. Key: {key}", fileKey);
         
-        return TypedResults.Created(
-            $"/file/{bucketId}/{filePath.TrimStart('/')}",
-            fileDto);
+        return TypedResults.Created($"/file/{fileKey}", fileKey);
     }
 }

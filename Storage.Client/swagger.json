@@ -137,39 +137,7 @@
         }
       }
     },
-    "/file/{bucketId}/{filePath}": {
-      "get": {
-        "tags": [
-          "File"
-        ],
-        "summary": "Скачивание файла из хранилища.",
-        "operationId": "DownloadFile",
-        "parameters": [
-          {
-            "name": "bucketId",
-            "in": "path",
-            "description": "Идентификатор корзины.",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "filePath",
-            "in": "path",
-            "description": "Путь к файлу в корзине.",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      },
+    "/file/{bucketId}": {
       "post": {
         "tags": [
           "File"
@@ -179,14 +147,6 @@
         "parameters": [
           {
             "name": "bucketId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "filePath",
             "in": "path",
             "required": true,
             "schema": {
@@ -224,7 +184,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/FileDto"
+                  "type": "string"
                 }
               }
             }
@@ -232,55 +192,27 @@
         }
       }
     },
-    "/file/{bucketId}": {
+    "/file/{fileKey}": {
       "get": {
         "tags": [
           "File"
         ],
-        "summary": "Список файлов корзины.",
-        "operationId": "GetFiles",
+        "summary": "Скачивание файла из хранилища.",
+        "operationId": "DownloadFile",
         "parameters": [
           {
-            "name": "bucketId",
+            "name": "fileKey",
             "in": "path",
-            "description": "Идентификатор корзины.",
+            "description": "Ключ файла.",
             "required": true,
             "schema": {
               "type": "string"
-            }
-          },
-          {
-            "name": "pageNumber",
-            "in": "query",
-            "description": "Номер страницы (начиная с 0).",
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            }
-          },
-          {
-            "name": "pageSize",
-            "in": "query",
-            "description": "Размер страницы.",
-            "schema": {
-              "type": "integer",
-              "format": "int32"
             }
           }
         ],
         "responses": {
           "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/FileDto"
-                  }
-                }
-              }
-            }
+            "description": "OK"
           }
         }
       }
@@ -372,24 +304,6 @@
             "type": "string",
             "format": "date-span",
             "nullable": true
-          }
-        },
-        "additionalProperties": false
-      },
-      "FileDto": {
-        "type": "object",
-        "properties": {
-          "fileName": {
-            "type": "string",
-            "nullable": true
-          },
-          "fileSize": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "createdAt": {
-            "type": "string",
-            "format": "date-time"
           }
         },
         "additionalProperties": false

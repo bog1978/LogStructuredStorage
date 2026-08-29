@@ -53,9 +53,19 @@ namespace Storage.Client
         [Patch("/bucket/{bucketId}")]
         Task<BucketDto> UpdateBucketAsync(string bucketId, [Body] BucketPatchDto body, CancellationToken cancellationToken = default);
 
+        /// <summary>Загрузка файла в хранилище.</summary>
+        /// <param name="bucketId">bucketId parameter</param>
+        /// <param name="formFile">formFile parameter</param>
+        /// <param name="cancellationToken">The cancellation token to cancel the request.</param>
+        /// <returns>Created</returns>
+        /// <exception cref="ApiException">Thrown when the request returns a non-success status code.</exception>
+        [Multipart]
+        [Headers("Accept: application/json")]
+        [Post("/file/{bucketId}")]
+        Task<string> UploadFileAsync(string bucketId, StreamPart formFile, CancellationToken cancellationToken = default);
+
         /// <summary>Скачивание файла из хранилища.</summary>
-        /// <param name="bucketId">Идентификатор корзины.</param>
-        /// <param name="filePath">Путь к файлу в корзине.</param>
+        /// <param name="fileKey">Ключ файла.</param>
         /// <param name="cancellationToken">The cancellation token to cancel the request.</param>
         /// <returns>
         /// A <see cref="Task"/> representing the <see cref="IApiResponse"/> instance containing the result:
@@ -70,31 +80,8 @@ namespace Storage.Client
         /// </item>
         /// </list>
         /// </returns>
-        [Get("/file/{bucketId}/{filePath}")]
-        Task<ApiResponse<Stream>> DownloadFileAsync(string bucketId, string filePath, CancellationToken cancellationToken = default);
-
-        /// <summary>Загрузка файла в хранилище.</summary>
-        /// <param name="bucketId">bucketId parameter</param>
-        /// <param name="filePath">filePath parameter</param>
-        /// <param name="formFile">formFile parameter</param>
-        /// <param name="cancellationToken">The cancellation token to cancel the request.</param>
-        /// <returns>Created</returns>
-        /// <exception cref="ApiException">Thrown when the request returns a non-success status code.</exception>
-        [Multipart]
-        [Headers("Accept: application/json")]
-        [Post("/file/{bucketId}/{filePath}")]
-        Task<FileDto> UploadFileAsync(string bucketId, string filePath, StreamPart formFile, CancellationToken cancellationToken = default);
-
-        /// <summary>Список файлов корзины.</summary>
-        /// <param name="bucketId">Идентификатор корзины.</param>
-        /// <param name="pageNumber">Номер страницы (начиная с 0).</param>
-        /// <param name="pageSize">Размер страницы.</param>
-        /// <param name="cancellationToken">The cancellation token to cancel the request.</param>
-        /// <returns>OK</returns>
-        /// <exception cref="ApiException">Thrown when the request returns a non-success status code.</exception>
-        [Headers("Accept: application/json")]
-        [Get("/file/{bucketId}")]
-        Task<ICollection<FileDto>> GetFilesAsync(string bucketId, [Query] int? pageNumber, [Query] int? pageSize, CancellationToken cancellationToken = default);
+        [Get("/file/{fileKey}")]
+        Task<ApiResponse<Stream>> DownloadFileAsync(string fileKey, CancellationToken cancellationToken = default);
 
         /// <summary>Список узлов в кластере.</summary>
         /// <param name="cancellationToken">The cancellation token to cancel the request.</param>
