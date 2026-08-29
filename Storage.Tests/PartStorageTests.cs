@@ -41,7 +41,7 @@ public class PartStorageTests
                 var wData = new byte[size];
                 Random.Shared.NextBytes(wData);
                 var wHash = Convert.ToBase64String(SHA256.HashData(wData));
-                if (!ps0.TryWrite(wData, out var offset))
+                if (!ps0.TryWrite("test_file.tmp", wData, out var offset))
                     break;
                 offsetList.Add((offset, wHash));
             }
@@ -55,7 +55,7 @@ public class PartStorageTests
                 var wData = new byte[size];
                 Random.Shared.NextBytes(wData);
                 var wHash = Convert.ToBase64String(SHA256.HashData(wData));
-                if (!ps1.TryWrite(wData, out var offset))
+                if (!ps1.TryWrite("test_file.tmp", wData, out var offset))
                     break;
                 offsetList.Add((offset, wHash));
             }
@@ -65,7 +65,7 @@ public class PartStorageTests
         {
             foreach (var (offset, wHash) in offsetList)
             {
-                var rData = ps2.Read(offset);
+                var (_, rData, _) = ps2.Read(offset);
                 var rHash = Convert.ToBase64String(SHA256.HashData(rData));
                 Assert.That(rHash, Is.EqualTo(wHash));
             }
@@ -86,7 +86,7 @@ public class PartStorageTests
                 var size = Random.Shared.NextInt64(500_000, 5_000_000);
                 var wData = new byte[size];
                 Random.Shared.NextBytes(wData);
-                if (!ps0.TryWrite(wData, out _))
+                if (!ps0.TryWrite("test_file.tmp", wData, out _))
                     break;
             }
         }
@@ -98,7 +98,7 @@ public class PartStorageTests
             Random.Shared.NextBytes(wData);
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(ps1.TryWrite(wData, out var offset), Is.False);
+                Assert.That(ps1.TryWrite("test_file.tmp", wData, out var offset), Is.False);
                 Assert.That(offset, Is.EqualTo(-1));
             }
         }

@@ -46,7 +46,7 @@ public class BucketStorageTests
                 var wData = new byte[size];
                 Random.Shared.NextBytes(wData);
                 var wHash = Convert.ToBase64String(SHA256.HashData(wData));
-                var location = ps0.Write(wData);
+                var location = ps0.Write("test_file.tmp", wData);
                 locationList.Add((location, wHash));
             }
         }
@@ -55,7 +55,7 @@ public class BucketStorageTests
         {
             foreach (var (location, wHash) in locationList)
             {
-                var rData = ps2.Read(location);
+                var (_, rData, _) = ps2.Read(location);
                 var rHash = Convert.ToBase64String(SHA256.HashData(rData));
                 Assert.That(rHash, Is.EqualTo(wHash));
             }

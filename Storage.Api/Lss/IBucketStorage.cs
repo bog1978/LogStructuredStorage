@@ -2,6 +2,6 @@
 
 internal interface IBucketStorage : IDisposable
 {
-    DataLocation Write(byte[] data);
-    byte[] Read(DataLocation location);
+    DataLocation Write(string fileName, byte[] data);
+    (string fileName, byte[] data, DateTimeOffset createdAt) Read(DataLocation location);
 }

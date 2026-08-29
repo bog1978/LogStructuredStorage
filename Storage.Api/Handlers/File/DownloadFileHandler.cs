@@ -49,9 +49,9 @@ internal class DownloadFileHandler : IEndpointHandler
         var location = new DataLocation(bucketName, partNumber, partOffset);
 
         var bucketStorage = nodeStorage.GetOrCreateBucket(bucketName);
-        var data = bucketStorage.Read(location);
+        var (fileName, data, createdAt) = bucketStorage.Read(location);
         var ms = new MemoryStream(data);
 
-        return TypedResults.Stream(ms);
+        return TypedResults.Stream(ms, fileDownloadName: fileName, lastModified: createdAt);
     }
 }

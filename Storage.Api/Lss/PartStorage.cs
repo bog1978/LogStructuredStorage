@@ -80,7 +80,7 @@ internal sealed class PartStorage : IDisposable
 
     internal string PartPath => _partPath;
 
-    public bool TryWrite(byte[] data, out long offset)
+    public bool TryWrite(string fileName, byte[] data, out long offset)
     {
         if (_writer == null)
         {
@@ -99,7 +99,11 @@ internal sealed class PartStorage : IDisposable
                 return false;
             }
 
+            var createdAt = DateTimeOffset.Now;
+
             offset = _writer.BaseStream.Position;
+            _writer.Write(fileName);
+            _writer.Write(createdAt.ToUnixTimeMilliseconds());
             _writer.Write(data.Length);
             _writer.Write(data);
             _writer.Flush();
@@ -112,7 +116,7 @@ internal sealed class PartStorage : IDisposable
         }
     }
 
-    public byte[] Read(long offset)
+    public (string fileName, byte[] data, DateTimeOffset createdAt) Read(long offset)
     {
         try
         {
@@ -120,8 +124,11 @@ internal sealed class PartStorage : IDisposable
             using var stream = new FileStream(PartPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
             using var reader = new BinaryReader(stream, Encoding.UTF8, true);
             stream.Seek(offset, SeekOrigin.Begin);
+            var fileName = reader.ReadString();
+            var createdAt = DateTimeOffset.FromUnixTimeMilliseconds(reader.ReadInt64());
             var size = reader.ReadInt32();
-            return reader.ReadBytes(size);
+            var data = reader.ReadBytes(size);
+            return (fileName, data, createdAt);
         }
         finally
         {

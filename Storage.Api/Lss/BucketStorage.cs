@@ -22,22 +22,22 @@ internal sealed class BucketStorage : IBucketStorage
         _partStorage ??= AddActivePart();
     }
 
-    public DataLocation Write(byte[] data)
+    public DataLocation Write(string fileName, byte[] data)
     {
-        if (_partStorage.TryWrite(data, out var offset))
+        if (_partStorage.TryWrite(fileName, data, out var offset))
             return new(_bucketName, _partStorage.PartNumber, offset);
 
         _partStorage.Close();
         _partStorage = AddActivePart();
 
-        return !_partStorage.TryWrite(data, out offset)
+        return !_partStorage.TryWrite(fileName, data, out offset)
             ? throw new InvalidOperationException("Failed to write data")
             : new(_bucketName, _partStorage.PartNumber, offset);
     }
 
     public string Name => _bucketName;
 
-    public byte[] Read(DataLocation location) =>
+    public (string fileName, byte[] data, DateTimeOffset createdAt) Read(DataLocation location) =>
         _partsMap.TryGetValue(location.PartNumber, out var part)
             ? part.Read(location.Offset)
             : throw new InvalidOperationException($"Part {location.PartNumber} not found");
