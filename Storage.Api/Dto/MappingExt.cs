@@ -8,14 +8,14 @@ internal static class MappingExt
     extension(Model.Node node)
     {
         public NodeDto ToDto() => new(
-            node.NodeId,
+            node.NodeName,
             node.HostName);
     }
 
     extension(Model.Bucket bucket)
     {
         public BucketDto ToDto() => new(
-            bucket.BucketId,
+            bucket.BucketName,
             bucket.NodeId,
             bucket.TtlHot,
             bucket.TtlCold);
@@ -29,8 +29,12 @@ internal static class MappingExt
             file.PartOffset);
 
         public FileDto ToDto() => new(
+            GetFileKey(file.NodeId, file.BucketId, file.PartId, file.PartOffset),
             file.FileName,
             file.FileSize,
             file.CreatedAt);
     }
+
+    private static string GetFileKey(string nodeName, string bucketName, int partId, long offset) => 
+        $"{nodeName}:{bucketName}:{partId}:{offset}";
 }

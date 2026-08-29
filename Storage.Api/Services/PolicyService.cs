@@ -39,10 +39,10 @@ internal class PolicyService(
         using var scope = scopeFactory.CreateScope();
         var clusterDataAccess = scope.ServiceProvider.GetRequiredService<IClusterDataAccess>();
         var buckets = await clusterDataAccess.GetBucketsAsync(stoppingToken);
-        var policyMap = buckets.ToDictionary(x => x.BucketId, x => new RetentionPolicy(x.TtlHot, x.TtlCold));
+        var policyMap = buckets.ToDictionary(x => x.BucketName, x => new RetentionPolicy(x.TtlHot, x.TtlCold));
         var map = nodeStorage.ApplyRetentionPolicy(x => policyMap[x]);
         foreach (var (bucket, parts) in map)
         foreach (var part in parts)
-            await clusterDataAccess.DeleteFilesAsync(_options.NodeId, bucket, part);
+            await clusterDataAccess.DeleteFilesAsync(_options.NodeName, bucket, part);
     }
 }

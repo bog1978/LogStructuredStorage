@@ -10,6 +10,8 @@ internal sealed class NodeInitializer(
 {
     private readonly StorageOptions _options = options.Value;
 
-    public async Task InitializeAsync(CancellationToken token) => 
-        await clusterDataAccess.RegisterNodeAsync(_options.NodeId, "localhost", token);
+    public async Task InitializeAsync(CancellationToken token)
+    {
+        await clusterDataAccess.RegisterNodeAsync(_options.NodeName, "localhost", token);
+    }
 }

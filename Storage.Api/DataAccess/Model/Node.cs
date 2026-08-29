@@ -16,20 +16,21 @@ namespace Storage.Cluster.DataAccess.Model
 	[Table("node", Schema = "public")]
 	public partial class Node
 	{
-		[Column("node_id"  , CanBeNull = false, DataType = DataType.NVarChar, DbType = "character varying(16)", IsPrimaryKey = true)] public string NodeId   { get; set; } // character varying(16)
-		[Column("host_name", CanBeNull = false, DataType = DataType.Text    , DbType = "text"                                      )] public string HostName { get; set; } // text
+		[Column("node_name", CanBeNull = false         , DataType = DataType.NVarChar, DbType     = "character varying(16)", IsPrimaryKey = true                     )] public string NodeName { get; set; } // character varying(16)
+		[Column("host_name", CanBeNull = false         , DataType = DataType.Text    , DbType     = "text"                                                           )] public string HostName { get; set; } // text
+		[Column("node_id"  , DataType  = DataType.Int16, DbType   = "smallint"       , IsIdentity = true                   , SkipOnInsert = true, SkipOnUpdate = true)] public short  NodeId   { get; set; } // smallint
 
 		#region Associations
 		/// <summary>
 		/// bucket_node_id_fkey backreference
 		/// </summary>
-		[Association(ThisKey = nameof(NodeId), OtherKey = nameof(Bucket.NodeId))]
+		[Association(ThisKey = nameof(NodeName), OtherKey = nameof(Bucket.NodeId))]
 		public IEnumerable<Bucket> Buckets { get; set; }
 
 		/// <summary>
 		/// file_node_id_fkey backreference
 		/// </summary>
-		[Association(ThisKey = nameof(NodeId), OtherKey = nameof(File.NodeId))]
+		[Association(ThisKey = nameof(NodeName), OtherKey = nameof(File.NodeId))]
 		public IEnumerable<File> Files { get; set; }
 		#endregion
 	}

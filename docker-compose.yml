@@ -20,7 +20,7 @@ services:
       # Настройки сервиса
       StorageOptions__BodySizeLimitMb: 16
       StorageOptions__ConnectionString: Host=db;Port=5432;Database=lss_cluster;Username=lss_user;Password=lss_password;Include Error Detail=True;
-      StorageOptions__NodeId: node1
+      StorageOptions__NodeName: node1
       StorageOptions__HotPath: /mnt/lssData/node1/hot
       StorageOptions__ColdPath: /mnt/lssData/node1/cold
       StorageOptions__PartSizeMb: 100

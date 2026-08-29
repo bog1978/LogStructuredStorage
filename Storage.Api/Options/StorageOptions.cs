@@ -19,7 +19,7 @@ internal class StorageOptions : IOptionsBase
     public string ConnectionString { get; set; } = string.Empty;
     
     [Required(AllowEmptyStrings = false), MinLength(5)]
-    public string NodeId { get; set; } = string.Empty;
+    public string NodeName { get; set; } = string.Empty;
     
     [Required]
     public TimeSpan PolicyInterval { get; set; } = TimeSpan.FromSeconds(60);

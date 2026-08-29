@@ -43,18 +43,18 @@ internal class UploadFileHandler : IEndpointHandler
         if (bucket == null)
             throw new BucketNotFoundException(bucketId);
 
-        if (bucket.NodeId != options.Value.NodeId)
+        if (bucket.NodeId != options.Value.NodeName)
             throw new FeatureNotImplementedException("Переадресация на другую ноду.");
 
         using var ms = new MemoryStream();
         await formFile.CopyToAsync(ms, token);
 
-        var bucketStorage = nodeStorage.GetOrCreateBucket(bucket.BucketId);
+        var bucketStorage = nodeStorage.GetOrCreateBucket(bucket.BucketName);
 
         var location = bucketStorage.Write(ms.ToArray());
 
         var file = await clusterDataAccess.CreateFileAsync(
-            bucket.BucketId,
+            bucket.BucketName,
             bucket.NodeId,
             filePath,
             location.Offset,
@@ -62,8 +62,12 @@ internal class UploadFileHandler : IEndpointHandler
             formFile.Length,
             token);
 
+        var fileDto = file.ToDto();
+        
+        logger.LogInformation("File uploaded: {filePath}. Key: {key}", filePath, fileDto.Key);
+        
         return TypedResults.Created(
             $"/file/{bucketId}/{filePath.TrimStart('/')}",
-            file.ToDto());
+            fileDto);
     }
 }

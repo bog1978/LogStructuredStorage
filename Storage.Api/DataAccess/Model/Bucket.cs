@@ -16,16 +16,17 @@ namespace Storage.Cluster.DataAccess.Model
 	[Table("bucket", Schema = "public")]
 	public partial class Bucket
 	{
-		[Column("bucket_id", CanBeNull = false            , DataType = DataType.NVarChar, DbType = "character varying(16)", IsPrimaryKey = true)] public string   BucketId { get; set; } // character varying(16)
-		[Column("node_id"  , CanBeNull = false            , DataType = DataType.NVarChar, DbType = "character varying(16)"                     )] public string   NodeId   { get; set; } // character varying(16)
-		[Column("ttl_hot"  , DataType  = DataType.Interval, DbType   = "interval"                                                              )] public TimeSpan TtlHot   { get; set; } // interval
-		[Column("ttl_cold" , DataType  = DataType.Interval, DbType   = "interval"                                                              )] public TimeSpan TtlCold  { get; set; } // interval
+		[Column("bucket_name", CanBeNull = false            , DataType = DataType.NVarChar, DbType     = "character varying(16)", IsPrimaryKey = true                     )] public string   BucketName { get; set; } // character varying(16)
+		[Column("node_id"    , CanBeNull = false            , DataType = DataType.NVarChar, DbType     = "character varying(16)"                                          )] public string   NodeId     { get; set; } // character varying(16)
+		[Column("ttl_hot"    , DataType  = DataType.Interval, DbType   = "interval"                                                                                       )] public TimeSpan TtlHot     { get; set; } // interval
+		[Column("ttl_cold"   , DataType  = DataType.Interval, DbType   = "interval"                                                                                       )] public TimeSpan TtlCold    { get; set; } // interval
+		[Column("bucket_id"  , DataType  = DataType.Int32   , DbType   = "integer"        , IsIdentity = true                   , SkipOnInsert = true, SkipOnUpdate = true)] public int      BucketId   { get; set; } // integer
 
 		#region Associations
 		/// <summary>
 		/// bucket_node_id_fkey
 		/// </summary>
-		[Association(CanBeNull = false, ThisKey = nameof(NodeId), OtherKey = nameof(Model.Node.NodeId))]
+		[Association(CanBeNull = false, ThisKey = nameof(NodeId), OtherKey = nameof(Model.Node.NodeName))]
 		public Node Node { get; set; }
 		#endregion
 	}

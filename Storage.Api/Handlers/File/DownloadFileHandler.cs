@@ -45,7 +45,7 @@ internal class DownloadFileHandler : IEndpointHandler
         if (file == null)
             throw new BucketFileNotFoundException(bucketId, filePath);
 
-        if (file.NodeId != options.Value.NodeId)
+        if (file.NodeId != options.Value.NodeName)
             throw new FeatureNotImplementedException("Переадресация на другую ноду.");
 
         var bucketStorage = nodeStorage.GetOrCreateBucket(file.BucketId);

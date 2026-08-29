@@ -22,7 +22,7 @@ internal sealed class PartStorage : IDisposable
         _isHot = true;
         if (!Directory.Exists(rootPath))
             Directory.CreateDirectory(rootPath);
-        _partPath = Path.Combine(rootPath, $"{partNumber:00000000}.lss");
+        _partPath = Path.Combine(rootPath, $"{partNumber:0000000000}.lss");
         (_partHeader, _writer) = CreatePart(_partPath, partNumber, partSizeMb);
     }
 

@@ -5,14 +5,14 @@ namespace Storage.Api.DataAccess;
 internal interface IClusterDataAccess
 {
     Task<Model.Bucket> CreateBucketAsync(
-        string bucketId,
+        string bucketName,
         string nodeId,
         TimeSpan ttlHot,
         TimeSpan ttlCold,
         CancellationToken token);
 
     Task<Model.Bucket?> GetBucketAsync(
-        string bucketId,
+        string bucketName,
         CancellationToken token);
 
     Task<IReadOnlyList<Model.Bucket>> GetBucketsAsync(
@@ -22,7 +22,7 @@ internal interface IClusterDataAccess
         CancellationToken token);
 
     Task<Model.Bucket?> UpdateBucketAsync(
-        string bucketId,
+        string bucketName,
         string? nodeId,
         TimeSpan? ttlHot,
         TimeSpan? ttlCold,
@@ -48,8 +48,8 @@ internal interface IClusterDataAccess
         long fileSize,
         CancellationToken token);
 
-    Task RegisterNodeAsync(
-        string nodeId,
+    Task<Model.Node> RegisterNodeAsync(
+        string nodeName,
         string hostName,
         CancellationToken token);
 

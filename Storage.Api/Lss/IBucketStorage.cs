@@ -1,6 +1,6 @@
 ﻿namespace Storage.Api.Lss;
 
-public interface IBucketStorage : IDisposable
+internal interface IBucketStorage : IDisposable
 {
     DataLocation Write(byte[] data);
     byte[] Read(DataLocation location);

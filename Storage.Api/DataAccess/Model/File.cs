@@ -29,7 +29,7 @@ namespace Storage.Cluster.DataAccess.Model
 		/// <summary>
 		/// file_node_id_fkey
 		/// </summary>
-		[Association(CanBeNull = false, ThisKey = nameof(NodeId), OtherKey = nameof(Model.Node.NodeId))]
+		[Association(CanBeNull = false, ThisKey = nameof(NodeId), OtherKey = nameof(Model.Node.NodeName))]
 		public Node Node { get; set; }
 		#endregion
 	}
