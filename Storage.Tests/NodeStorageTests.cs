@@ -51,17 +51,18 @@ public sealed class NodeStorageTests : IDisposable
         for (var i = 0; i < 500; i++)
         {
             var bucketName = _bucketNames[Random.Shared.Next(_bucketNames.Length)];
-            var size = Random.Shared.NextInt64(500_000, 5_000_000);
+            var size = Random.Shared.Next(500_000, 5_000_000);
             var wData = new byte[size];
             Random.Shared.NextBytes(wData);
             var wHash = Convert.ToBase64String(SHA256.HashData(wData));
-            var location = bucketStorage.Write(bucketName, "test_file.tmp", wData);
+            var fileHeader = new FileHeader("test_file.tmp", "", size, DateTimeOffset.UtcNow);
+            var location = bucketStorage.Write(bucketName, fileHeader, wData);
             locationList.Add((location, wHash));
         }
 
         foreach (var (location, wHash) in locationList)
         {
-            var (_, rData, _) = bucketStorage.Read(location);
+            var (_, rData) = bucketStorage.Read(location);
             var rHash = Convert.ToBase64String(SHA256.HashData(rData));
             Assert.That(rHash, Is.EqualTo(wHash));
         }

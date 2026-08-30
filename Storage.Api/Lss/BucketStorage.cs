@@ -22,22 +22,22 @@ internal sealed class BucketStorage : IBucketStorage
         _partStorage ??= AddActivePart();
     }
 
-    public DataLocation Write(string fileName, byte[] data)
+    public DataLocation Write(FileHeader fileHeader, byte[] data)
     {
-        if (_partStorage.TryWrite(fileName, data, out var offset))
+        if (_partStorage.TryWrite(fileHeader, data, out var offset))
             return new(_bucketName, _partStorage.PartNumber, offset);
 
         _partStorage.Close();
         _partStorage = AddActivePart();
 
-        return !_partStorage.TryWrite(fileName, data, out offset)
+        return !_partStorage.TryWrite(fileHeader, data, out offset)
             ? throw new InvalidOperationException("Failed to write data")
             : new(_bucketName, _partStorage.PartNumber, offset);
     }
 
     public string Name => _bucketName;
 
-    public (string fileName, byte[] data, DateTimeOffset createdAt) Read(DataLocation location) =>
+    public (FileHeader fileHeader, byte[] data) Read(DataLocation location) =>
         _partsMap.TryGetValue(location.PartNumber, out var part)
             ? part.Read(location.Offset)
             : throw new InvalidOperationException($"Part {location.PartNumber} not found");
@@ -66,13 +66,13 @@ internal sealed class BucketStorage : IBucketStorage
             if (part.CanWrite)
                 continue;
             // Полное время жизни складывается из горячего и холодного.
-            if (part.MaxTime + policy.TtlHot + policy.TtlCold < DateTimeOffset.Now)
+            if (part.MaxTime + policy.TtlHot + policy.TtlCold < DateTimeOffset.UtcNow)
             {
                 part.Delete();
                 if (_partsMap.Remove(part.PartNumber, out var p))
                     removed.Add(p.PartNumber);
             }
-            else if (part.IsHot && part.MaxTime + policy.TtlHot < DateTimeOffset.Now)
+            else if (part.IsHot && part.MaxTime + policy.TtlHot < DateTimeOffset.UtcNow)
             {
                 part.MakeCold(_bucketColdDir);
             }

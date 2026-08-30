@@ -44,12 +44,18 @@ internal class UploadFileHandler : IEndpointHandler
         using var ms = new MemoryStream();
         await formFile.CopyToAsync(ms, token);
 
+        var fileHeader = new FileHeader(
+            formFile.FileName,
+            formFile.ContentType,
+            (int)formFile.Length,
+            DateTimeOffset.UtcNow);
+
         var bucketStorage = nodeStorage.GetOrCreateBucket(bucket.BucketName);
-        var location = bucketStorage.Write(formFile.FileName, ms.ToArray());
+        var location = bucketStorage.Write(fileHeader, ms.ToArray());
         var fileKey = MappingExt.GetFileKey(options.Value.NodeName, bucketId, location.PartNumber, location.Offset);
-        
+
         logger.LogInformation("File uploaded. Key: {key}", fileKey);
-        
+
         return TypedResults.Created($"/file/{fileKey}", fileKey);
     }
 }

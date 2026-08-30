@@ -80,7 +80,7 @@ internal sealed class PartStorage : IDisposable
 
     internal string PartPath => _partPath;
 
-    public bool TryWrite(string fileName, byte[] data, out long offset)
+    public bool TryWrite(FileHeader fileHeader, byte[] data, out long offset)
     {
         if (_writer == null)
         {
@@ -91,7 +91,11 @@ internal sealed class PartStorage : IDisposable
         try
         {
             _lock.EnterWriteLock();
-            if (_writer.BaseStream.Length < _writer.BaseStream.Position + sizeof(int) + data.Length)
+            
+            if (fileHeader.Length != data.Length)
+                throw new InvalidOperationException("File length mismatch");
+
+            if (_writer.BaseStream.Length < _writer.BaseStream.Position + sizeof(int) + fileHeader.Length)
             {
                 _partHeader = _writer.ClosePart(_partHeader);
                 offset = -1;
@@ -99,12 +103,11 @@ internal sealed class PartStorage : IDisposable
                 return false;
             }
 
-            var createdAt = DateTimeOffset.Now;
 
             offset = _writer.BaseStream.Position;
-            _writer.Write(fileName);
-            _writer.Write(createdAt.ToUnixTimeMilliseconds());
-            _writer.Write(data.Length);
+            _writer.Write(fileHeader.FileName);
+            _writer.Write(fileHeader.CreatedAt.ToUnixTimeMilliseconds());
+            _writer.Write(fileHeader.Length);
             _writer.Write(data);
             _writer.Flush();
             _partHeader = _writer.UpdateWriteOffset(_partHeader);
@@ -116,7 +119,7 @@ internal sealed class PartStorage : IDisposable
         }
     }
 
-    public (string fileName, byte[] data, DateTimeOffset createdAt) Read(long offset)
+    public (FileHeader fileHeader, byte[] data) Read(long offset)
     {
         try
         {
@@ -128,7 +131,8 @@ internal sealed class PartStorage : IDisposable
             var createdAt = DateTimeOffset.FromUnixTimeMilliseconds(reader.ReadInt64());
             var size = reader.ReadInt32();
             var data = reader.ReadBytes(size);
-            return (fileName, data, createdAt);
+            var fileHeader = new FileHeader(fileName, "", size, createdAt);
+            return (fileHeader, data);
         }
         finally
         {

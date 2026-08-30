@@ -42,11 +42,12 @@ public class BucketStorageTests
         {
             for (var i = 0; i < 100; i++)
             {
-                var size = Random.Shared.NextInt64(500_000, 5_000_000);
+                var size = Random.Shared.Next(500_000, 5_000_000);
                 var wData = new byte[size];
                 Random.Shared.NextBytes(wData);
                 var wHash = Convert.ToBase64String(SHA256.HashData(wData));
-                var location = ps0.Write("test_file.tmp", wData);
+                var fileHeader = new FileHeader("test_file.tmp", "", size, DateTimeOffset.UtcNow);
+                var location = ps0.Write(fileHeader, wData);
                 locationList.Add((location, wHash));
             }
         }
@@ -55,7 +56,7 @@ public class BucketStorageTests
         {
             foreach (var (location, wHash) in locationList)
             {
-                var (_, rData, _) = ps2.Read(location);
+                var (_, rData) = ps2.Read(location);
                 var rHash = Convert.ToBase64String(SHA256.HashData(rData));
                 Assert.That(rHash, Is.EqualTo(wHash));
             }
