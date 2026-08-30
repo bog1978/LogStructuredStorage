@@ -42,7 +42,8 @@ public class PartStorageTests
                 Random.Shared.NextBytes(wData);
                 var wHash = Convert.ToBase64String(SHA256.HashData(wData));
                 var fileHeader = new FileHeader("test_file.tmp", "", size, DateTimeOffset.UtcNow);
-                if (!ps0.TryWrite(fileHeader, wData, out var offset))
+                using var ms = new MemoryStream(wData);
+                if (!ps0.TryWrite(fileHeader, ms, out var offset))
                     break;
                 offsetList.Add((offset, wHash));
             }
@@ -57,7 +58,8 @@ public class PartStorageTests
                 Random.Shared.NextBytes(wData);
                 var wHash = Convert.ToBase64String(SHA256.HashData(wData));
                 var fileHeader = new FileHeader("test_file.tmp", "", size, DateTimeOffset.UtcNow);
-                if (!ps1.TryWrite(fileHeader, wData, out var offset))
+                using var ms = new MemoryStream(wData);
+                if (!ps1.TryWrite(fileHeader, ms, out var offset))
                     break;
                 offsetList.Add((offset, wHash));
             }
@@ -89,7 +91,8 @@ public class PartStorageTests
                 var wData = new byte[size];
                 Random.Shared.NextBytes(wData);
                 var fileHeader = new FileHeader("test_file.tmp", "", size, DateTimeOffset.UtcNow);
-                if (!ps0.TryWrite(fileHeader, wData, out _))
+                using var ms = new MemoryStream(wData);
+                if (!ps0.TryWrite(fileHeader, ms, out _))
                     break;
             }
         }
@@ -102,7 +105,8 @@ public class PartStorageTests
             using (Assert.EnterMultipleScope())
             {
                 var fileHeader = new FileHeader("test_file.tmp", "", size, DateTimeOffset.UtcNow);
-                Assert.That(ps1.TryWrite(fileHeader, wData, out var offset), Is.False);
+                using var ms = new MemoryStream(wData);
+                Assert.That(ps1.TryWrite(fileHeader, ms, out var offset), Is.False);
                 Assert.That(offset, Is.EqualTo(-1));
             }
         }

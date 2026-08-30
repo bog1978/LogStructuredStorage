@@ -22,7 +22,7 @@ internal sealed class BucketStorage : IBucketStorage
         _partStorage ??= AddActivePart();
     }
 
-    public DataLocation Write(FileHeader fileHeader, byte[] data)
+    public DataLocation Write(FileHeader fileHeader, Stream data)
     {
         if (_partStorage.TryWrite(fileHeader, data, out var offset))
             return new(_bucketName, _partStorage.PartNumber, offset);

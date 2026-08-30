@@ -41,8 +41,7 @@ internal class UploadFileHandler : IEndpointHandler
         if (bucket.NodeId != options.Value.NodeName)
             throw new FeatureNotImplementedException("Переадресация на другую ноду.");
 
-        using var ms = new MemoryStream();
-        await formFile.CopyToAsync(ms, token);
+        var bucketStorage = nodeStorage.GetOrCreateBucket(bucket.BucketName);
 
         var fileHeader = new FileHeader(
             formFile.FileName,
@@ -50,8 +49,9 @@ internal class UploadFileHandler : IEndpointHandler
             (int)formFile.Length,
             DateTimeOffset.UtcNow);
 
-        var bucketStorage = nodeStorage.GetOrCreateBucket(bucket.BucketName);
-        var location = bucketStorage.Write(fileHeader, ms.ToArray());
+        await using var data = formFile.OpenReadStream();
+        var location = bucketStorage.Write(fileHeader, data);
+
         var fileKey = MappingExt.GetFileKey(options.Value.NodeName, bucketId, location.PartNumber, location.Offset);
 
         logger.LogInformation("File uploaded. Key: {key}", fileKey);

@@ -47,7 +47,8 @@ public class BucketStorageTests
                 Random.Shared.NextBytes(wData);
                 var wHash = Convert.ToBase64String(SHA256.HashData(wData));
                 var fileHeader = new FileHeader("test_file.tmp", "", size, DateTimeOffset.UtcNow);
-                var location = ps0.Write(fileHeader, wData);
+                using var ms = new MemoryStream(wData);
+                var location = ps0.Write(fileHeader, ms);
                 locationList.Add((location, wHash));
             }
         }

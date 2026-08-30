@@ -56,7 +56,8 @@ public sealed class NodeStorageTests : IDisposable
             Random.Shared.NextBytes(wData);
             var wHash = Convert.ToBase64String(SHA256.HashData(wData));
             var fileHeader = new FileHeader("test_file.tmp", "", size, DateTimeOffset.UtcNow);
-            var location = bucketStorage.Write(bucketName, fileHeader, wData);
+            using var ms = new MemoryStream(wData);
+            var location = bucketStorage.Write(bucketName, fileHeader, ms);
             locationList.Add((location, wHash));
         }
 

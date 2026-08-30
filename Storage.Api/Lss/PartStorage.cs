@@ -80,7 +80,7 @@ internal sealed class PartStorage : IDisposable
 
     internal string PartPath => _partPath;
 
-    public bool TryWrite(FileHeader fileHeader, byte[] data, out long offset)
+    public bool TryWrite(FileHeader fileHeader, Stream data, out long offset)
     {
         if (_writer == null)
         {
@@ -106,7 +106,7 @@ internal sealed class PartStorage : IDisposable
 
             offset = _writer.BaseStream.Position;
             _writer.WriteFileHeader(fileHeader);
-            _writer.Write(data);
+            data.CopyTo(_writer.BaseStream);
             _writer.Flush();
             _partHeader = _writer.UpdateWriteOffset(_partHeader);
             return true;
