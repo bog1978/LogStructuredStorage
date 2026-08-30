@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using System.Globalization;
+using Microsoft.Extensions.Logging;
 using Refit;
 using Storage.Client;
 
@@ -24,10 +25,12 @@ internal class Worker(ILogger<Worker> logger, IStorageApi client)
             };
 
             var bucket = await client.CreateBucketAsync(bucketCreateDto);
+            
+            var now = DateTimeOffset.Now.ToString("HHmmss", CultureInfo.InvariantCulture);
 
             for (var i = 0; i < 100; i++)
             {
-                var fileName = $"file_{i}.dat";
+                var fileName = $"file_{now}_{i}.dat";
                 var size = Random.Shared.Next(1024 * 1024 / 4, 1024 * 1024 * 4);
                 var data = new byte[size];
                 Random.Shared.NextBytes(data);

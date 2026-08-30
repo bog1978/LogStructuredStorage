@@ -105,9 +105,7 @@ internal sealed class PartStorage : IDisposable
 
 
             offset = _writer.BaseStream.Position;
-            _writer.Write(fileHeader.FileName);
-            _writer.Write(fileHeader.CreatedAt.ToUnixTimeMilliseconds());
-            _writer.Write(fileHeader.Length);
+            _writer.WriteFileHeader(fileHeader);
             _writer.Write(data);
             _writer.Flush();
             _partHeader = _writer.UpdateWriteOffset(_partHeader);
@@ -127,11 +125,8 @@ internal sealed class PartStorage : IDisposable
             using var stream = new FileStream(PartPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
             using var reader = new BinaryReader(stream, Encoding.UTF8, true);
             stream.Seek(offset, SeekOrigin.Begin);
-            var fileName = reader.ReadString();
-            var createdAt = DateTimeOffset.FromUnixTimeMilliseconds(reader.ReadInt64());
-            var size = reader.ReadInt32();
-            var data = reader.ReadBytes(size);
-            var fileHeader = new FileHeader(fileName, "", size, createdAt);
+            var fileHeader = reader.ReadFileHeader();
+            var data = reader.ReadBytes(fileHeader.Length);
             return (fileHeader, data);
         }
         finally
@@ -200,7 +195,7 @@ internal sealed class PartStorage : IDisposable
     private static (PartHeader header, BinaryWriter? writer) LoadPart(string partPath)
     {
         var stream = new FileStream(partPath, FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite);
-        var partHeader = stream.ReadHeader();
+        var partHeader = stream.ReadPartHeader();
         if (partHeader.WritePosition <= 0)
         {
             stream.Dispose();
@@ -217,7 +212,7 @@ internal sealed class PartStorage : IDisposable
         var stream = new FileStream(partPath, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.ReadWrite);
         stream.SetLength(partSizeMb * 1024 * 1024);
         var writer = new BinaryWriter(stream);
-        var partHeader = writer.CreateHeader(partNumber);
+        var partHeader = writer.CreatePartHeader(partNumber);
         return (partHeader, writer);
     }
 }
