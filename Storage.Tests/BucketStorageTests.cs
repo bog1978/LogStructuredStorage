@@ -34,7 +34,7 @@ public class BucketStorageTests
     }
 
     [Test]
-    public void GenericTest()
+    public async Task GenericTest()
     {
         var locationList = new List<(DataLocation Location, string Hash)>();
 
@@ -48,7 +48,7 @@ public class BucketStorageTests
                 var wHash = Convert.ToBase64String(SHA256.HashData(wData));
                 var fileHeader = new FileHeader("test_file.tmp", "", size, DateTimeOffset.UtcNow);
                 using var ms = new MemoryStream(wData);
-                var location = ps0.Write(fileHeader, ms);
+                var location = await ps0.Write(fileHeader, ms, CancellationToken.None);
                 locationList.Add((location, wHash));
             }
         }
@@ -57,7 +57,9 @@ public class BucketStorageTests
         {
             foreach (var (location, wHash) in locationList)
             {
-                var (_, rData) = ps2.Read(location);
+                using var ms = new MemoryStream();
+                await ps2.Read(location, _ => { }, ms, CancellationToken.None);
+                var rData = ms.ToArray();
                 var rHash = Convert.ToBase64String(SHA256.HashData(rData));
                 Assert.That(rHash, Is.EqualTo(wHash));
             }

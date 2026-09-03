@@ -50,7 +50,7 @@ internal class UploadFileHandler : IEndpointHandler
             DateTimeOffset.UtcNow);
 
         await using var data = formFile.OpenReadStream();
-        var location = bucketStorage.Write(fileHeader, data);
+        var location = await bucketStorage.Write(fileHeader, data, token);
 
         var fileKey = MappingExt.GetFileKey(options.Value.NodeName, bucketId, location.PartNumber, location.Offset);
 

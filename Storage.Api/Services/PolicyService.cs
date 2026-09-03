@@ -13,13 +13,13 @@ internal class PolicyService(
 {
     private readonly StorageOptions _options = options.Value;
 
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    protected override async Task ExecuteAsync(CancellationToken token)
     {
-        while (!stoppingToken.IsCancellationRequested)
+        while (!token.IsCancellationRequested)
         {
             try
             {
-                await ApplyPolicyAsync(stoppingToken);
+                await ApplyPolicyAsync(token);
             }
             catch (Exception ex)
             {
@@ -27,19 +27,19 @@ internal class PolicyService(
             }
             finally
             {
-                await Task.Delay(_options.PolicyInterval, stoppingToken);
+                await Task.Delay(_options.PolicyInterval, token);
             }
         }
     }
 
-    private async Task ApplyPolicyAsync(CancellationToken stoppingToken)
+    private async Task ApplyPolicyAsync(CancellationToken token)
     {
         // Физически удаляется после истечения срока хранения в холодном хранилище.
         // TODO: Реализовать перенос из горячего в холодное хранилище.
         using var scope = scopeFactory.CreateScope();
         var clusterDataAccess = scope.ServiceProvider.GetRequiredService<IClusterDataAccess>();
-        var buckets = await clusterDataAccess.GetBucketsAsync(stoppingToken);
+        var buckets = await clusterDataAccess.GetBucketsAsync(token);
         var policyMap = buckets.ToDictionary(x => x.BucketName, x => new RetentionPolicy(x.TtlHot, x.TtlCold));
-        var map = nodeStorage.ApplyRetentionPolicy(x => policyMap[x]);
+        await nodeStorage.ApplyRetentionPolicy(x => policyMap[x], token);
     }
 }

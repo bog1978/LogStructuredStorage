@@ -14,7 +14,7 @@ public class PartStorageTests
             Directory.Delete(RootPath, true);
         Directory.CreateDirectory(RootPath);
     }
-    
+
     [OneTimeTearDown]
     public void Cleanup()
     {
@@ -26,7 +26,7 @@ public class PartStorageTests
     }
 
     [Test]
-    public void GenericTest()
+    public async Task GenericTest()
     {
         var rootPath = $"{RootPath}\\test1";
         var offsetList = new List<(long Len, string Hash)>();
@@ -43,7 +43,8 @@ public class PartStorageTests
                 var wHash = Convert.ToBase64String(SHA256.HashData(wData));
                 var fileHeader = new FileHeader("test_file.tmp", "", size, DateTimeOffset.UtcNow);
                 using var ms = new MemoryStream(wData);
-                if (!ps0.TryWrite(fileHeader, ms, out var offset))
+                var offset = await ps0.TryWrite(fileHeader, ms, CancellationToken.None);
+                if (offset < 0)
                     break;
                 offsetList.Add((offset, wHash));
             }
@@ -59,7 +60,8 @@ public class PartStorageTests
                 var wHash = Convert.ToBase64String(SHA256.HashData(wData));
                 var fileHeader = new FileHeader("test_file.tmp", "", size, DateTimeOffset.UtcNow);
                 using var ms = new MemoryStream(wData);
-                if (!ps1.TryWrite(fileHeader, ms, out var offset))
+                var offset = await ps1.TryWrite(fileHeader, ms, CancellationToken.None);
+                if (offset < 0)
                     break;
                 offsetList.Add((offset, wHash));
             }
@@ -69,7 +71,9 @@ public class PartStorageTests
         {
             foreach (var (offset, wHash) in offsetList)
             {
-                var (_, rData) = ps2.Read(offset);
+                using var ms = new MemoryStream();
+                await ps2.Read(offset, ms, _ => { }, CancellationToken.None);
+                var rData = ms.ToArray();
                 var rHash = Convert.ToBase64String(SHA256.HashData(rData));
                 Assert.That(rHash, Is.EqualTo(wHash));
             }
@@ -77,7 +81,7 @@ public class PartStorageTests
     }
 
     [Test]
-    public void ReadOnlyTest()
+    public async Task ReadOnlyTest()
     {
         var rootPath = $"{RootPath}\\test2";
 
@@ -92,7 +96,8 @@ public class PartStorageTests
                 Random.Shared.NextBytes(wData);
                 var fileHeader = new FileHeader("test_file.tmp", "", size, DateTimeOffset.UtcNow);
                 using var ms = new MemoryStream(wData);
-                if (!ps0.TryWrite(fileHeader, ms, out _))
+                var offset = await ps0.TryWrite(fileHeader, ms, CancellationToken.None);
+                if (offset < 0)
                     break;
             }
         }
@@ -106,7 +111,7 @@ public class PartStorageTests
             {
                 var fileHeader = new FileHeader("test_file.tmp", "", size, DateTimeOffset.UtcNow);
                 using var ms = new MemoryStream(wData);
-                Assert.That(ps1.TryWrite(fileHeader, ms, out var offset), Is.False);
+                var offset = await ps1.TryWrite(fileHeader, ms, CancellationToken.None);
                 Assert.That(offset, Is.EqualTo(-1));
             }
         }

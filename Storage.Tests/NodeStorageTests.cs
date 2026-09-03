@@ -28,10 +28,10 @@ public sealed class NodeStorageTests : IDisposable
     }
 
     [OneTimeSetUp]
-    public void Setup()
+    public async Task Setup()
     {
         var bucketStorage = _host.Services.GetRequiredService<INodeStorage>();
-        bucketStorage.DeleteAll();
+        await bucketStorage.DeleteAll(CancellationToken.None);
     }
 
     [Test, Order(0)]
@@ -43,7 +43,7 @@ public sealed class NodeStorageTests : IDisposable
     }
 
     [Test, Order(1)]
-    public void GenericTest()
+    public async Task GenericTest()
     {
         var bucketStorage = _host.Services.GetRequiredService<INodeStorage>();
         var locationList = new List<(DataLocation Location, string Hash)>();
@@ -57,24 +57,26 @@ public sealed class NodeStorageTests : IDisposable
             var wHash = Convert.ToBase64String(SHA256.HashData(wData));
             var fileHeader = new FileHeader("test_file.tmp", "", size, DateTimeOffset.UtcNow);
             using var ms = new MemoryStream(wData);
-            var location = bucketStorage.Write(bucketName, fileHeader, ms);
+            var location = await bucketStorage.Write(bucketName, fileHeader, ms, CancellationToken.None);
             locationList.Add((location, wHash));
         }
 
         foreach (var (location, wHash) in locationList)
         {
-            var (_, rData) = bucketStorage.Read(location);
+            using var ms = new MemoryStream();
+            await bucketStorage.Read(location, _ => { }, ms, CancellationToken.None);
+            var rData = ms.ToArray();
             var rHash = Convert.ToBase64String(SHA256.HashData(rData));
             Assert.That(rHash, Is.EqualTo(wHash));
         }
     }
 
     [Test, Order(2)]
-    public void PolicyTest()
+    public async Task PolicyTest()
     {
         var policy = new RetentionPolicy(TimeSpan.Zero, TimeSpan.Zero);
         var bucketStorage = _host.Services.GetRequiredService<INodeStorage>();
-        bucketStorage.ApplyRetentionPolicy(_ => policy);
+        await bucketStorage.ApplyRetentionPolicy(_ => policy, CancellationToken.None);
     }
 
     public void Dispose() =>

@@ -22,30 +22,35 @@ internal sealed class BucketStorage : IBucketStorage
         _partStorage ??= AddActivePart();
     }
 
-    public DataLocation Write(FileHeader fileHeader, Stream data)
+    public async Task<DataLocation> Write(FileHeader fileHeader, Stream data, CancellationToken token)
     {
-        if (_partStorage.TryWrite(fileHeader, data, out var offset))
+        var offset = await _partStorage.TryWrite(fileHeader, data, token);
+        if (offset >= 0)
             return new(_bucketName, _partStorage.PartNumber, offset);
 
         _partStorage.Close();
         _partStorage = AddActivePart();
 
-        return !_partStorage.TryWrite(fileHeader, data, out offset)
-            ? throw new InvalidOperationException("Failed to write data")
-            : new(_bucketName, _partStorage.PartNumber, offset);
+        offset = await _partStorage.TryWrite(fileHeader, data, token);
+        return offset >= 0
+            ? new(_bucketName, _partStorage.PartNumber, offset)
+            : throw new InvalidOperationException("Failed to write data");
     }
 
     public string Name => _bucketName;
 
-    public (FileHeader fileHeader, byte[] data) Read(DataLocation location) =>
-        _partsMap.TryGetValue(location.PartNumber, out var part)
-            ? part.Read(location.Offset)
-            : throw new InvalidOperationException($"Part {location.PartNumber} not found");
+    public async Task Read(DataLocation location, Action<FileHeader> headerCallback, Stream outStream, CancellationToken token)
+    {
+        if (_partsMap.TryGetValue(location.PartNumber, out var part))
+            await part.Read(location.Offset, outStream, headerCallback, token);
+        else
+            throw new InvalidOperationException($"Part {location.PartNumber} not found");
+    }
 
-    public void DeleteAll()
+    public async Task DeleteAll(CancellationToken token)
     {
         foreach (var part in _partsMap.Values)
-            part.Delete();
+            await part.Delete(token);
         _partsMap.Clear();
         if (Directory.Exists(_bucketHotDir))
             Directory.Delete(_bucketHotDir, true);
@@ -57,9 +62,8 @@ internal sealed class BucketStorage : IBucketStorage
             part.Dispose();
     }
 
-    public IReadOnlyList<int> ApplyRetentionPolicy(RetentionPolicy policy)
+    public async Task ApplyRetentionPolicy(RetentionPolicy policy, CancellationToken token)
     {
-        var removed = new List<int>();
         var parts = _partsMap.Values.ToList();
         foreach (var part in parts)
         {
@@ -68,21 +72,18 @@ internal sealed class BucketStorage : IBucketStorage
             // Полное время жизни складывается из горячего и холодного.
             if (part.MaxTime + policy.TtlHot + policy.TtlCold < DateTimeOffset.UtcNow)
             {
-                part.Delete();
-                if (_partsMap.Remove(part.PartNumber, out var p))
-                    removed.Add(p.PartNumber);
+                await part.Delete(token);
+                _partsMap.Remove(part.PartNumber, out var p);
             }
             else if (part.IsHot && part.MaxTime + policy.TtlHot < DateTimeOffset.UtcNow)
             {
-                part.MakeCold(_bucketColdDir);
+                await part.MakeCold(_bucketColdDir, token);
             }
             else
             {
                 // Пускай еще побудет тепленьким.
             }
         }
-
-        return removed.AsReadOnly();
     }
 
     private void LoadParts(string bucketDir, bool isHot)

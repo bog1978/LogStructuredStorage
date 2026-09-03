@@ -1,10 +1,11 @@
 ﻿using System.Text;
+using DotNext.Threading;
 
 namespace Storage.Api.Lss;
 
 internal sealed class PartStorage : IDisposable
 {
-    private readonly ReaderWriterLockSlim _lock = new();
+    private readonly AsyncReaderWriterLock _lock = new();
     private BinaryWriter? _writer;
     private PartHeader _partHeader;
     private string _partPath;
@@ -34,31 +35,12 @@ internal sealed class PartStorage : IDisposable
     {
         get
         {
-            try
-            {
-                _lock.EnterReadLock();
-                return _partHeader.PartNumber;
-            }
-            finally
-            {
-                _lock.ExitReadLock();
-            }
-        }
-    }
-
-    public DateTimeOffset MinTime
-    {
-        get
-        {
-            try
-            {
-                _lock.EnterReadLock();
-                return _partHeader.MinTime;
-            }
-            finally
-            {
-                _lock.ExitReadLock();
-            }
+            // TODO: переделать на Interlocked. 
+            if (!_lock.TryEnterReadLock())
+                throw new InvalidOperationException("Cannot read part number");
+            var partNumber = _partHeader.PartNumber;
+            _lock.Release();
+            return partNumber;
         }
     }
 
@@ -66,92 +48,101 @@ internal sealed class PartStorage : IDisposable
     {
         get
         {
-            try
-            {
-                _lock.EnterReadLock();
-                return _partHeader.MaxTime;
-            }
-            finally
-            {
-                _lock.ExitReadLock();
-            }
+            // TODO: переделать на Interlocked. 
+            if (!_lock.TryEnterReadLock())
+                throw new InvalidOperationException("Cannot read part number");
+            var maxTime = _partHeader.MaxTime;
+            _lock.Release();
+            return maxTime;
         }
     }
 
     internal string PartPath => _partPath;
 
-    public bool TryWrite(FileHeader fileHeader, Stream data, out long offset)
+    public async Task<long> TryWrite(FileHeader fileHeader, Stream inStream, CancellationToken token)
     {
-        if (_writer == null)
-        {
-            offset = -1;
-            return false;
-        }
-
+        var isLocked = false;
         try
         {
-            _lock.EnterWriteLock();
-            
-            if (fileHeader.Length != data.Length)
+            await _lock.EnterWriteLockAsync(token);
+            isLocked = true;
+
+            if (_writer == null)
+                return -1;
+
+            if (fileHeader.Length != inStream.Length)
                 throw new InvalidOperationException("File length mismatch");
 
             if (_writer.BaseStream.Length < _writer.BaseStream.Position + sizeof(int) + fileHeader.Length)
             {
                 _partHeader = _writer.ClosePart(_partHeader);
-                offset = -1;
                 Close();
-                return false;
+                return -1;
             }
 
-
-            offset = _writer.BaseStream.Position;
+            var offset = _writer.BaseStream.Position;
             _writer.WriteFileHeader(fileHeader);
-            data.CopyTo(_writer.BaseStream);
+            await inStream.CopyToAsync(_writer.BaseStream, token);
             _writer.Flush();
             _partHeader = _writer.UpdateWriteOffset(_partHeader);
-            return true;
+            return offset;
         }
         finally
         {
-            _lock.ExitWriteLock();
+            if (isLocked)
+                _lock.Release();
         }
     }
 
-    public (FileHeader fileHeader, byte[] data) Read(long offset)
+    public async Task Read(
+        long offset,
+        Stream outStream,
+        Action<FileHeader> headersCallback,
+        CancellationToken token)
     {
+        var isLocked = false;
         try
         {
-            _lock.EnterReadLock();
-            using var stream = new FileStream(PartPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+            await _lock.EnterReadLockAsync(token);
+            isLocked = true;
+            await using var stream = new FileStream(PartPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
             using var reader = new BinaryReader(stream, Encoding.UTF8, true);
             stream.Seek(offset, SeekOrigin.Begin);
             var fileHeader = reader.ReadFileHeader();
+            headersCallback(fileHeader);
+            // TODO: Переделать на асинхронное копирование диапазона stream в outStream.
             var data = reader.ReadBytes(fileHeader.Length);
-            return (fileHeader, data);
+            await outStream.WriteAsync(data, token);
         }
         finally
         {
-            _lock.ExitReadLock();
+            if (isLocked)
+                _lock.Release();
         }
     }
 
-    public void MakeCold(string bucketColdDir)
+    public async Task MakeCold(string bucketColdDir, CancellationToken token)
     {
-        if (!IsHot)
-            throw new InvalidOperationException("Part is already cold");
-
+        var isLocked = false;
         try
         {
-            _lock.EnterWriteLock();
+            await _lock.EnterWriteLockAsync(token);
+            isLocked = true;
+
+            if (!IsHot)
+                throw new InvalidOperationException("Part is already cold");
+
 
             if (!Directory.Exists(bucketColdDir))
                 Directory.CreateDirectory(bucketColdDir);
 
             var newPath = Path.Combine(bucketColdDir, Path.GetFileName(PartPath));
 
-            using (var srcStream = new FileStream(PartPath, FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite))
-            using (var dstStream = new FileStream(newPath, FileMode.Create, FileAccess.ReadWrite, FileShare.ReadWrite))
-                srcStream.CopyTo(dstStream);
+            await using (var srcStream =
+                         new FileStream(PartPath, FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite))
+            await using (var dstStream =
+                         new FileStream(newPath, FileMode.Create, FileAccess.ReadWrite, FileShare.ReadWrite))
+                await srcStream.CopyToAsync(dstStream, token);
             Close();
             File.Delete(_partPath);
             _partPath = newPath;
@@ -160,28 +151,34 @@ internal sealed class PartStorage : IDisposable
         }
         finally
         {
-            _lock.ExitWriteLock();
+            if (isLocked)
+                _lock.Release();
         }
     }
 
-    public void Delete()
+    public async Task Delete(CancellationToken token)
     {
+        var isLocked = false;
         try
         {
-            _lock.EnterWriteLock();
+            await _lock.EnterWriteLockAsync(token);
+            isLocked = true;
             Close();
             File.Delete(PartPath);
         }
         finally
         {
-            _lock.ExitWriteLock();
+            if (isLocked)
+                _lock.Release();
         }
     }
 
     public void Close()
     {
-        _writer?.Flush();
-        _writer?.Dispose();
+        if (_writer == null)
+            return;
+        _writer.Flush();
+        _writer.Dispose();
         _writer = null;
     }
 
@@ -191,7 +188,7 @@ internal sealed class PartStorage : IDisposable
         _writer?.Dispose();
         _lock.Dispose();
     }
-    
+
     private static (PartHeader header, BinaryWriter? writer) LoadPart(string partPath)
     {
         var stream = new FileStream(partPath, FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite);
