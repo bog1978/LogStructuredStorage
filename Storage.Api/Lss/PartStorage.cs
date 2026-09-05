@@ -122,10 +122,8 @@ internal sealed class PartStorage : IDisposable
 
             var newPath = Path.Combine(bucketColdDir, Path.GetFileName(PartPath));
 
-            await using (var srcStream =
-                         new FileStream(PartPath, FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite))
-            await using (var dstStream =
-                         new FileStream(newPath, FileMode.Create, FileAccess.ReadWrite, FileShare.ReadWrite))
+            await using (var srcStream = new FileStream(PartPath, FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite))
+            await using (var dstStream = new FileStream(newPath, FileMode.Create, FileAccess.ReadWrite, FileShare.ReadWrite))
                 await srcStream.CopyToAsync(dstStream, token);
             Close();
             File.Delete(_partPath);
@@ -187,16 +185,6 @@ internal sealed class PartStorage : IDisposable
         return (partHeader, writer);
     }
 
-    private static (PartHeader header, BinaryWriter? writer) CreatePart(string partPath, int partNumber, int partSizeMb)
-    {
-        var now = DateTimeOffset.UtcNow;
-        var stream = new FileStream(partPath, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.ReadWrite);
-        stream.SetLength(partSizeMb * 1024 * 1024);
-        var writer = new BinaryWriter(stream);
-        var partHeader = writer.CreatePartHeader(new PartHeader(partNumber, 0, PartTypeEnum.Hot, now, now));
-        return (partHeader, writer);
-    }
-
     public static PartStorage Create(string partPath)
     {
         var (partHeader, writer) = LoadPart(partPath);
@@ -208,7 +196,11 @@ internal sealed class PartStorage : IDisposable
         if (!Directory.Exists(rootPath))
             Directory.CreateDirectory(rootPath);
         var partPath = Path.Combine(rootPath, $"{partNumber:0000000000}.lss");
-        var (partHeader, writer) = CreatePart(partPath, partNumber, partSizeMb);
+        var stream = new FileStream(partPath, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.ReadWrite);
+        stream.SetLength(partSizeMb * 1024 * 1024);
+        var writer = new BinaryWriter(stream);
+        var now = DateTimeOffset.UtcNow;
+        var partHeader = writer.CreatePartHeader(new PartHeader(partNumber, 0, PartTypeEnum.Hot, now, now));
         return new PartStorage(partPath, partHeader, writer);
     }
 }
