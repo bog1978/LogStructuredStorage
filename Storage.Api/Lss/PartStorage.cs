@@ -10,19 +10,11 @@ internal sealed class PartStorage : IDisposable
     private PartHeader _partHeader;
     private string _partPath;
 
-    private PartStorage(string partPath)
+    private PartStorage(string partPath, PartHeader partHeader, BinaryWriter? writer)
     {
         _partPath = partPath;
-        (_partHeader, _writer) = LoadPart(partPath);
-        PartNumber = _partHeader.PartNumber;
-    }
-
-    private PartStorage(string rootPath, int partNumber, int partSizeMb)
-    {
-        if (!Directory.Exists(rootPath))
-            Directory.CreateDirectory(rootPath);
-        _partPath = Path.Combine(rootPath, $"{partNumber:0000000000}.lss");
-        (_partHeader, _writer) = CreatePart(_partPath, partNumber, partSizeMb);
+        _partHeader = partHeader;
+        _writer = writer;
         PartNumber = _partHeader.PartNumber;
     }
 
@@ -207,11 +199,16 @@ internal sealed class PartStorage : IDisposable
 
     public static PartStorage Create(string partPath)
     {
-        return new PartStorage(partPath);
+        var (partHeader, writer) = LoadPart(partPath);
+        return new PartStorage(partPath, partHeader, writer);
     }
 
     public static PartStorage Create(string rootPath, int partNumber, int partSizeMb)
     {
-        return new PartStorage(rootPath, partNumber, partSizeMb);
+        if (!Directory.Exists(rootPath))
+            Directory.CreateDirectory(rootPath);
+        var partPath = Path.Combine(rootPath, $"{partNumber:0000000000}.lss");
+        var (partHeader, writer) = CreatePart(partPath, partNumber, partSizeMb);
+        return new PartStorage(partPath, partHeader, writer);
     }
 }
