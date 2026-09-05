@@ -9,40 +9,26 @@ internal sealed class PartStorage : IDisposable
     private BinaryWriter? _writer;
     private PartHeader _partHeader;
     private string _partPath;
-    private bool _isHot;
 
-    public PartStorage(string partPath, bool isHot)
+    public PartStorage(string partPath)
     {
-        _isHot = isHot;
         _partPath = partPath;
         (_partHeader, _writer) = LoadPart(partPath);
+        PartNumber = _partHeader.PartNumber;
     }
 
     public PartStorage(string rootPath, int partNumber, int partSizeMb)
     {
-        _isHot = true;
         if (!Directory.Exists(rootPath))
             Directory.CreateDirectory(rootPath);
         _partPath = Path.Combine(rootPath, $"{partNumber:0000000000}.lss");
         (_partHeader, _writer) = CreatePart(_partPath, partNumber, partSizeMb);
+        PartNumber = _partHeader.PartNumber;
     }
 
-    public bool CanWrite => _writer != null;
+    public bool IsHot => _partHeader.PartType == PartTypeEnum.Hot;
 
-    public bool IsHot => _isHot;
-
-    public int PartNumber
-    {
-        get
-        {
-            // TODO: переделать на Interlocked. 
-            if (!_lock.TryEnterReadLock())
-                throw new InvalidOperationException("Cannot read part number");
-            var partNumber = _partHeader.PartNumber;
-            _lock.Release();
-            return partNumber;
-        }
-    }
+    public int PartNumber { get; }
 
     public DateTimeOffset MaxTime
     {
@@ -67,15 +53,18 @@ internal sealed class PartStorage : IDisposable
             await _lock.EnterWriteLockAsync(token);
             isLocked = true;
 
-            if (_writer == null)
+            if (_partHeader.PartType != PartTypeEnum.Hot)
                 return -1;
+            
+            if(_writer == null)
+                throw new InvalidOperationException("Writer is null");
 
             if (fileHeader.Length != inStream.Length)
                 throw new InvalidOperationException("File length mismatch");
 
             if (_writer.BaseStream.Length < _writer.BaseStream.Position + sizeof(int) + fileHeader.Length)
             {
-                _partHeader = _writer.ClosePart(_partHeader);
+                _partHeader = _writer.MakeWarmPart(_partHeader);
                 Close();
                 return -1;
             }
@@ -126,15 +115,18 @@ internal sealed class PartStorage : IDisposable
         var isLocked = false;
         try
         {
+            if (!Directory.Exists(bucketColdDir))
+                Directory.CreateDirectory(bucketColdDir);
+
             await _lock.EnterWriteLockAsync(token);
             isLocked = true;
 
-            if (!IsHot)
+            if (_partHeader.PartType == PartTypeEnum.Cold)
                 throw new InvalidOperationException("Part is already cold");
 
-
-            if (!Directory.Exists(bucketColdDir))
-                Directory.CreateDirectory(bucketColdDir);
+            // TODO: Копировать сразу с новым заголовком. Тогда можно будет использовать EnterReadLockAsync,
+            // TODO: а перед удалением - UpgradeToWriteLockAsync.
+            _writer?.MakeColdPart(_partHeader);
 
             var newPath = Path.Combine(bucketColdDir, Path.GetFileName(PartPath));
 
@@ -147,7 +139,6 @@ internal sealed class PartStorage : IDisposable
             File.Delete(_partPath);
             _partPath = newPath;
             (_partHeader, _writer) = LoadPart(_partPath);
-            _isHot = false;
         }
         finally
         {
@@ -206,10 +197,11 @@ internal sealed class PartStorage : IDisposable
 
     private static (PartHeader header, BinaryWriter? writer) CreatePart(string partPath, int partNumber, int partSizeMb)
     {
+        var now = DateTimeOffset.UtcNow;
         var stream = new FileStream(partPath, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.ReadWrite);
         stream.SetLength(partSizeMb * 1024 * 1024);
         var writer = new BinaryWriter(stream);
-        var partHeader = writer.CreatePartHeader(partNumber);
+        var partHeader = writer.CreatePartHeader(new PartHeader(partNumber, 0, PartTypeEnum.Hot, now, now));
         return (partHeader, writer);
     }
 }

@@ -67,7 +67,7 @@ internal sealed class BucketStorage : IBucketStorage
         var parts = _partsMap.Values.ToList();
         foreach (var part in parts)
         {
-            if (part.CanWrite)
+            if (part.IsHot)
                 continue;
             // Полное время жизни складывается из горячего и холодного.
             if (part.MaxTime + policy.TtlHot + policy.TtlCold < DateTimeOffset.UtcNow)
@@ -98,10 +98,10 @@ internal sealed class BucketStorage : IBucketStorage
             .EnumerateFiles(bucketDir, "*.lss", SearchOption.AllDirectories);
         foreach (var partFile in partFiles)
         {
-            var part = new PartStorage(partFile, isHot);
+            var part = new PartStorage(partFile);
             if (!_partsMap.TryAdd(part.PartNumber, part))
                 throw new InvalidOperationException($"Duplicate part number {part.PartNumber}");
-            if (!part.CanWrite)
+            if (!part.IsHot)
                 continue;
             if (_partStorage != null)
                 throw new InvalidOperationException(

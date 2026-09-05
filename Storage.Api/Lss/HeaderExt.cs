@@ -4,7 +4,7 @@ namespace Storage.Api.Lss;
 
 internal static class HeaderExt
 {
-    private static long Size => sizeof(int) + sizeof(long) * 3;
+    private static long Size => sizeof(int) + sizeof(long) * 3 + sizeof(byte);
 
     extension(Stream stream)
     {
@@ -17,43 +17,51 @@ internal static class HeaderExt
 
     extension(BinaryWriter writer)
     {
-        public PartHeader CreatePartHeader(int partNumber)
+        public PartHeader CreatePartHeader(PartHeader header)
         {
-            var now = DateTimeOffset.UtcNow;
-            var header = new PartHeader(partNumber, Size, now, now);        
-            writer.WritePartHeader(header);
-            return header;
+            writer.BaseStream.Position = 0;
+            return writer.WritePartHeader(header with { WritePosition = Size });
         }
 
-        public PartHeader ClosePart(PartHeader header)
-        {
-            var partHeader = header with { WritePosition = -1 };
-            UpdatePartHeader(writer, partHeader);
-            return partHeader;
-        }
+        public PartHeader MakeWarmPart(PartHeader header) => writer.UpdatePartHeader(
+            header with
+            {
+                PartType = PartTypeEnum.Warm,
+                WritePosition = -1
+            });
 
-        public PartHeader UpdateWriteOffset(PartHeader header)
-        {
-            var partHeader = header with { WritePosition = writer.BaseStream.Position };
-            UpdatePartHeader(writer, partHeader);
-            return partHeader;
-        }
+        public PartHeader MakeColdPart(PartHeader header) => writer.UpdatePartHeader(
+            header with
+            {
+                PartType = PartTypeEnum.Cold,
+                WritePosition = -1
+            });
+        
+        public PartHeader UpdateWriteOffset(PartHeader header) => writer.UpdatePartHeader(
+            header with
+            {
+                WritePosition = writer.BaseStream.Position
+            });
 
-        private void UpdatePartHeader(PartHeader header)
+        private PartHeader UpdatePartHeader(PartHeader header)
         {
             var position = writer.BaseStream.Position;
             writer.BaseStream.Position = 0;
-            WritePartHeader(writer, header);
+            writer.WritePartHeader(header);
             writer.BaseStream.Position = position;
+            return header;
         }
 
-        private void WritePartHeader(PartHeader header)
+        private PartHeader WritePartHeader(PartHeader header)
         {
+            var pt = (byte)header.PartType;
             writer.Write(header.PartNumber);
+            writer.Write(pt);
             writer.Write(header.MinTime.ToUnixTimeSeconds());
             writer.Write(header.MaxTime.ToUnixTimeSeconds());
             writer.Write(header.WritePosition);
             writer.Flush();
+            return header;
         }
 
         public void WriteFileHeader(FileHeader header)
@@ -69,13 +77,18 @@ internal static class HeaderExt
     {
         private PartHeader ReadPartHeader()
         {
+            if (reader.BaseStream.Position > 0)
+                throw new InvalidOperationException("Invalid position");
+
             var partNumber = reader.ReadInt32();
+            var partType = reader.ReadByte();
             var minTime = reader.ReadInt64();
             var maxTime = reader.ReadInt64();
             var writePosition = reader.ReadInt64();
             return new PartHeader(
                 partNumber,
                 writePosition,
+                (PartTypeEnum)partType,
                 DateTimeOffset.FromUnixTimeSeconds(minTime),
                 DateTimeOffset.FromUnixTimeSeconds(maxTime));
         }
