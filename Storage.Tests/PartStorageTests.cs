@@ -32,7 +32,7 @@ public class PartStorageTests
         var offsetList = new List<(long Len, string Hash)>();
 
         string partPath;
-        using (var ps0 = new PartStorage(rootPath, 0, 100_000_000))
+        using (var ps0 = PartStorage.Create(rootPath, 0, 100))
         {
             partPath = ps0.PartPath;
             for (var i = 0; i < 10; i++)
@@ -50,7 +50,7 @@ public class PartStorageTests
             }
         }
 
-        using (var ps1 = new PartStorage(partPath))
+        using (var ps1 = PartStorage.Create(partPath))
         {
             while (true)
             {
@@ -67,7 +67,7 @@ public class PartStorageTests
             }
         }
 
-        using (var ps2 = new PartStorage(partPath))
+        using (var ps2 = PartStorage.Create(partPath))
         {
             foreach (var (offset, wHash) in offsetList)
             {
@@ -86,7 +86,7 @@ public class PartStorageTests
         var rootPath = $"{RootPath}\\test2";
 
         string partPath;
-        using (var ps0 = new PartStorage(rootPath, 1, 100_000_000))
+        using (var ps0 = PartStorage.Create(rootPath, 1, 100))
         {
             partPath = ps0.PartPath;
             while (true)
@@ -102,7 +102,7 @@ public class PartStorageTests
             }
         }
 
-        using (var ps1 = new PartStorage(partPath))
+        using (var ps1 = PartStorage.Create(partPath))
         {
             var size = Random.Shared.Next(500_000, 5_000_000);
             var wData = new byte[size];

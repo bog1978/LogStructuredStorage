@@ -10,14 +10,14 @@ internal sealed class PartStorage : IDisposable
     private PartHeader _partHeader;
     private string _partPath;
 
-    public PartStorage(string partPath)
+    private PartStorage(string partPath)
     {
         _partPath = partPath;
         (_partHeader, _writer) = LoadPart(partPath);
         PartNumber = _partHeader.PartNumber;
     }
 
-    public PartStorage(string rootPath, int partNumber, int partSizeMb)
+    private PartStorage(string rootPath, int partNumber, int partSizeMb)
     {
         if (!Directory.Exists(rootPath))
             Directory.CreateDirectory(rootPath);
@@ -203,5 +203,15 @@ internal sealed class PartStorage : IDisposable
         var writer = new BinaryWriter(stream);
         var partHeader = writer.CreatePartHeader(new PartHeader(partNumber, 0, PartTypeEnum.Hot, now, now));
         return (partHeader, writer);
+    }
+
+    public static PartStorage Create(string partPath)
+    {
+        return new PartStorage(partPath);
+    }
+
+    public static PartStorage Create(string rootPath, int partNumber, int partSizeMb)
+    {
+        return new PartStorage(rootPath, partNumber, partSizeMb);
     }
 }

@@ -98,7 +98,7 @@ internal sealed class BucketStorage : IBucketStorage
             .EnumerateFiles(bucketDir, "*.lss", SearchOption.AllDirectories);
         foreach (var partFile in partFiles)
         {
-            var part = new PartStorage(partFile);
+            var part = PartStorage.Create(partFile);
             if (!_partsMap.TryAdd(part.PartNumber, part))
                 throw new InvalidOperationException($"Duplicate part number {part.PartNumber}");
             if (!part.IsHot)
@@ -116,7 +116,7 @@ internal sealed class BucketStorage : IBucketStorage
         var nextPartNumber = _partsMap.Keys.Count > 0
             ? _partsMap.Keys.Max() + 1
             : 0;
-        var partStorage = new PartStorage(_bucketHotDir, nextPartNumber, _partSizeMb);
+        var partStorage = PartStorage.Create(_bucketHotDir, nextPartNumber, _partSizeMb);
         if (!_partsMap.TryAdd(nextPartNumber, partStorage))
             throw new InvalidOperationException($"Duplicate part number {nextPartNumber}");
         return partStorage;
