@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Options;
 using Storage.Api.DataAccess;
 using Storage.Api.Lss;
+using Storage.Api.Lss.Model;
 using Storage.Api.Options;
 
 namespace Storage.Api.Services;

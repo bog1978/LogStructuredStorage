@@ -1,4 +1,4 @@
-﻿namespace Storage.Api.Lss;
+﻿namespace Storage.Api.Lss.Model;
 
 internal record PartHeader(
     int PartNumber,

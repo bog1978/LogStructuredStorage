@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using Storage.Api.Lss;
+using Storage.Api.Lss.Model;
 using Storage.Cluster;
 
 namespace Storage.Tests;

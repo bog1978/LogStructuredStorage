@@ -9,6 +9,7 @@ using Storage.Api.Internal;
 using Storage.Api.Lss;
 using Storage.Api.Options;
 using System.Net.Http.Headers;
+using Storage.Api.Lss.Model;
 
 namespace Storage.Api.Handlers.File;
 

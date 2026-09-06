@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Storage.Api;
 using Storage.Api.Lss;
+using Storage.Api.Lss.Model;
 using Storage.Cluster;
 
 namespace Storage.Tests;

@@ -1,4 +1,6 @@
-﻿namespace Storage.Api.Lss;
+﻿using Storage.Api.Lss.Model;
+
+namespace Storage.Api.Lss;
 
 internal interface INodeStorage : IDisposable
 {

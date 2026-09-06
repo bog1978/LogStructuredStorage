@@ -1,4 +1,5 @@
 ﻿using System.Collections.Concurrent;
+using Storage.Api.Lss.Model;
 
 namespace Storage.Api.Lss;
 

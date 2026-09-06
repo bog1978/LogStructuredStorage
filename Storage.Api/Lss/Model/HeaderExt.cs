@@ -1,6 +1,6 @@
 ﻿using System.Text;
 
-namespace Storage.Api.Lss;
+namespace Storage.Api.Lss.Model;
 
 internal static class HeaderExt
 {
@@ -63,14 +63,6 @@ internal static class HeaderExt
             writer.Flush();
             return header;
         }
-
-        public void WriteFileHeader(FileHeader header)
-        {
-            writer.Write(header.FileName);
-            writer.Write(header.ContentType);
-            writer.Write(header.CreatedAt.ToUnixTimeMilliseconds());
-            writer.Write(header.Length);
-        }
     }
 
     extension(BinaryReader reader)
@@ -91,15 +83,6 @@ internal static class HeaderExt
                 (PartTypeEnum)partType,
                 DateTimeOffset.FromUnixTimeSeconds(minTime),
                 DateTimeOffset.FromUnixTimeSeconds(maxTime));
-        }
-
-        public FileHeader ReadFileHeader()
-        {
-            var fileName = reader.ReadString();
-            var contentType = reader.ReadString();
-            var createdAt = DateTimeOffset.FromUnixTimeMilliseconds(reader.ReadInt64());
-            var length = reader.ReadInt32();
-            return new FileHeader(fileName, contentType, length, createdAt);
         }
     }
 }

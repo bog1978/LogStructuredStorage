@@ -1,5 +1,6 @@
 ﻿using System.Text;
 using DotNext.Threading;
+using Storage.Api.Lss.Model;
 
 namespace Storage.Api.Lss;
 
@@ -54,19 +55,22 @@ internal sealed class PartStorage : IDisposable
             if (fileHeader.Length != inStream.Length)
                 throw new InvalidOperationException("File length mismatch");
 
-            if (_writer.BaseStream.Length < _writer.BaseStream.Position + sizeof(int) + fileHeader.Length)
+            var headerBytes = FileHeader.ToBytes(fileHeader);
+            if (_writer.BaseStream.Length < _writer.BaseStream.Position + headerBytes.Length + fileHeader.Length)
             {
                 _partHeader = _writer.MakeWarmPart(_partHeader);
                 Close();
                 return -1;
             }
-
-            var offset = _writer.BaseStream.Position;
-            _writer.WriteFileHeader(fileHeader);
-            await inStream.CopyToAsync(_writer.BaseStream, token);
-            _writer.Flush();
-            _partHeader = _writer.UpdateWriteOffset(_partHeader);
-            return offset;
+            else
+            {
+                var offset = _writer.BaseStream.Position;
+                _writer.Write(headerBytes);
+                await inStream.CopyToAsync(_writer.BaseStream, token);
+                _writer.Flush();
+                _partHeader = _writer.UpdateWriteOffset(_partHeader);
+                return offset;
+            }
         }
         finally
         {
@@ -89,7 +93,7 @@ internal sealed class PartStorage : IDisposable
             await using var stream = new FileStream(PartPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
             using var reader = new BinaryReader(stream, Encoding.UTF8, true);
             stream.Seek(offset, SeekOrigin.Begin);
-            var fileHeader = reader.ReadFileHeader();
+            var fileHeader = FileHeader.ToHeader(reader);
             headersCallback(fileHeader);
             // TODO: Переделать на асинхронное копирование диапазона stream в outStream.
             var data = reader.ReadBytes(fileHeader.Length);

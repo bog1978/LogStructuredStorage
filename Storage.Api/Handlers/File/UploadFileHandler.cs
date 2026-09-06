@@ -8,6 +8,7 @@ using Storage.Api.Exceptions;
 using Storage.Api.Handlers.Metadata;
 using Storage.Api.Internal;
 using Storage.Api.Lss;
+using Storage.Api.Lss.Model;
 using Storage.Api.Options;
 
 namespace Storage.Api.Handlers.File;

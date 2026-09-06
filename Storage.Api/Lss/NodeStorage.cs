@@ -1,5 +1,6 @@
 ﻿using System.Collections.Concurrent;
 using Microsoft.Extensions.Options;
+using Storage.Api.Lss.Model;
 using Storage.Api.Options;
 using Storage.Cluster;
 
