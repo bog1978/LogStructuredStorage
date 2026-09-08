@@ -23,13 +23,15 @@ internal sealed class Program
             .WithTracing(bld => bld
                 .AddNpgsql()
                 .AddAspNetCoreInstrumentation()
-                .AddHttpClientInstrumentation())
+                .AddHttpClientInstrumentation()
+                .AddSource(StorageTelemetry.Activity.Name))
             .WithMetrics(bld => bld
                 .AddHttpClientInstrumentation()
                 .AddNpgsqlInstrumentation()
                 .AddAspNetCoreInstrumentation()
                 .AddRuntimeInstrumentation()
-                .AddProcessInstrumentation());
+                .AddProcessInstrumentation()
+                .AddMeter(StorageTelemetry.Meter.Name));
 
         // Настройка конфигурации API
         var apiOptions = builder.Configuration.GetOptions<StorageOptions>();
