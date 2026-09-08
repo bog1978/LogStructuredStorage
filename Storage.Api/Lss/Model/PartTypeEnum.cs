@@ -15,5 +15,10 @@ internal enum PartTypeEnum : byte
     /// <summary>
     /// Холодный раздел позволяет: читать, удалять.
     /// </summary>
-    Cold = 3
+    Cold = 3,
+    
+    /// <summary>
+    /// Раздел был удален в процессе применения политики хранения.
+    /// </summary>
+    Deleted = 4,
 }

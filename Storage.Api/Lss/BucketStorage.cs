@@ -68,22 +68,9 @@ internal sealed class BucketStorage : IBucketStorage
         var parts = _partsMap.Values.ToList();
         foreach (var part in parts)
         {
-            if (part.IsHot)
-                continue;
-            // Полное время жизни складывается из горячего и холодного.
-            if (part.MaxTime + policy.TtlHot + policy.TtlCold < DateTimeOffset.UtcNow)
-            {
-                await part.Delete(token);
+            var partType = await part.ApplyRetentionPolicy(policy, _bucketColdDir, token);
+            if (partType == PartTypeEnum.Deleted)
                 _partsMap.Remove(part.PartNumber, out var p);
-            }
-            else if (part.IsHot && part.MaxTime + policy.TtlHot < DateTimeOffset.UtcNow)
-            {
-                await part.MakeCold(_bucketColdDir, token);
-            }
-            else
-            {
-                // Пускай еще побудет тепленьким.
-            }
         }
     }
 

@@ -23,22 +23,12 @@ internal sealed class PartStorage : IDisposable
 
     public int PartNumber { get; }
 
-    public DateTimeOffset MaxTime
-    {
-        get
-        {
-            // TODO: переделать на Interlocked. 
-            if (!_lock.TryEnterReadLock())
-                throw new InvalidOperationException("Cannot read part number");
-            var maxTime = _partHeader.MaxTime;
-            _lock.Release();
-            return maxTime;
-        }
-    }
-
     internal string PartPath => _partPath;
 
-    public async Task<long> TryWrite(FileHeader fileHeader, Stream inStream, CancellationToken token)
+    public async Task<long> TryWrite(
+        FileHeader fileHeader,
+        Stream inStream,
+        CancellationToken token)
     {
         var isLocked = false;
         try
@@ -48,8 +38,8 @@ internal sealed class PartStorage : IDisposable
 
             if (_partHeader.PartType != PartTypeEnum.Hot)
                 return -1;
-            
-            if(_writer == null)
+
+            if (_writer == null)
                 throw new InvalidOperationException("Writer is null");
 
             if (fileHeader.Length != inStream.Length)
@@ -90,7 +80,7 @@ internal sealed class PartStorage : IDisposable
         {
             await _lock.EnterReadLockAsync(token);
             isLocked = true;
-            await using var stream = new FileStream(PartPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+            await using var stream = new FileStream(_partPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
             using var reader = new BinaryReader(stream, Encoding.UTF8, true);
             stream.Seek(offset, SeekOrigin.Begin);
             var fileHeader = FileHeader.ToHeader(reader);
@@ -98,41 +88,6 @@ internal sealed class PartStorage : IDisposable
             // TODO: Переделать на асинхронное копирование диапазона stream в outStream.
             var data = reader.ReadBytes(fileHeader.Length);
             await outStream.WriteAsync(data, token);
-        }
-        finally
-        {
-            if (isLocked)
-                _lock.Release();
-        }
-    }
-
-    public async Task MakeCold(string bucketColdDir, CancellationToken token)
-    {
-        var isLocked = false;
-        try
-        {
-            if (!Directory.Exists(bucketColdDir))
-                Directory.CreateDirectory(bucketColdDir);
-
-            await _lock.EnterWriteLockAsync(token);
-            isLocked = true;
-
-            if (_partHeader.PartType == PartTypeEnum.Cold)
-                throw new InvalidOperationException("Part is already cold");
-
-            // TODO: Копировать сразу с новым заголовком. Тогда можно будет использовать EnterReadLockAsync,
-            // TODO: а перед удалением - UpgradeToWriteLockAsync.
-            _writer?.MakeColdPart(_partHeader);
-
-            var newPath = Path.Combine(bucketColdDir, Path.GetFileName(PartPath));
-
-            await using (var srcStream = new FileStream(PartPath, FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite))
-            await using (var dstStream = new FileStream(newPath, FileMode.Create, FileAccess.ReadWrite, FileShare.ReadWrite))
-                await srcStream.CopyToAsync(dstStream, token);
-            Close();
-            File.Delete(_partPath);
-            _partPath = newPath;
-            (_partHeader, _writer) = LoadPart(_partPath);
         }
         finally
         {
@@ -149,11 +104,39 @@ internal sealed class PartStorage : IDisposable
             await _lock.EnterWriteLockAsync(token);
             isLocked = true;
             Close();
-            File.Delete(PartPath);
+            File.Delete(_partPath);
+            _partHeader = _partHeader with { PartType = PartTypeEnum.Deleted };
         }
         finally
         {
             if (isLocked)
+                _lock.Release();
+        }
+    }
+
+    public async Task<PartTypeEnum> ApplyRetentionPolicy(RetentionPolicy policy, string bucketColdDir, CancellationToken token)
+    {
+        var isLockedRead = false;
+
+        try
+        {
+            await _lock.EnterReadLockAsync(token);
+            isLockedRead = true;
+
+            if (_partHeader.PartType == PartTypeEnum.Hot)
+                return _partHeader.PartType;
+
+            // Полное время жизни складывается из горячего и холодного.
+            if (_partHeader.MaxTime + policy.TtlHot + policy.TtlCold < DateTimeOffset.UtcNow)
+                await DeleteInternal(token);
+            else if (_partHeader.PartType == PartTypeEnum.Warm && _partHeader.MaxTime + policy.TtlHot < DateTimeOffset.UtcNow)
+                await MakeColdInternal(bucketColdDir, token);
+
+            return _partHeader.PartType;
+        }
+        finally
+        {
+            if (isLockedRead)
                 _lock.Release();
         }
     }
@@ -174,6 +157,59 @@ internal sealed class PartStorage : IDisposable
         _lock.Dispose();
     }
 
+    private async Task MakeColdInternal(string bucketColdDir, CancellationToken token)
+    {
+        var isLocked = false;
+        try
+        {
+            if (!Directory.Exists(bucketColdDir))
+                Directory.CreateDirectory(bucketColdDir);
+
+            await _lock.UpgradeToWriteLockAsync(token);
+            isLocked = true;
+
+            if (_partHeader.PartType == PartTypeEnum.Cold)
+                throw new InvalidOperationException("Part is already cold");
+
+            // TODO: Копировать сразу с новым заголовком. Тогда можно будет использовать EnterReadLockAsync,
+            // TODO: а перед удалением - UpgradeToWriteLockAsync.
+            _writer?.MakeColdPart(_partHeader);
+
+            var newPath = Path.Combine(bucketColdDir, Path.GetFileName(_partPath));
+
+            await using (var srcStream = new FileStream(_partPath, FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite))
+            await using (var dstStream = new FileStream(newPath, FileMode.Create, FileAccess.ReadWrite, FileShare.ReadWrite))
+                await srcStream.CopyToAsync(dstStream, token);
+            Close();
+            File.Delete(_partPath);
+            _partPath = newPath;
+            (_partHeader, _writer) = LoadPart(_partPath);
+        }
+        finally
+        {
+            if (isLocked)
+                _lock.DowngradeFromWriteLock();
+        }
+    }
+
+    private async Task DeleteInternal(CancellationToken token)
+    {
+        var isLocked = false;
+        try
+        {
+            await _lock.UpgradeToWriteLockAsync(token);
+            isLocked = true;
+            Close();
+            File.Delete(_partPath);
+            _partHeader = _partHeader with { PartType = PartTypeEnum.Deleted };
+        }
+        finally
+        {
+            if (isLocked)
+                _lock.DowngradeFromWriteLock();
+        }
+    }
+    
     private static (PartHeader header, BinaryWriter? writer) LoadPart(string partPath)
     {
         var stream = new FileStream(partPath, FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite);
