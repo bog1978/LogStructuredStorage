@@ -1,4 +1,5 @@
 ﻿using Storage.Api.Lss;
+using Storage.Api.Lss.Model;
 using Model = Storage.Cluster.DataAccess.Model;
 
 namespace Storage.Api.Dto;

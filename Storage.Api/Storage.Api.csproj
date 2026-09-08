@@ -9,6 +9,7 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <PackageReference Include="DotNext.Threading" Version="6.7.0" />
         <PackageReference Include="Evolve" Version="3.2.0" />
         <PackageReference Include="JetBrains.Annotations" Version="2026.2.0" />
         <PackageReference Include="linq2db" Version="6.4.0" />

@@ -1,4 +1,5 @@
 ﻿using System.Collections.Concurrent;
+using Storage.Api.Lss.Model;
 
 namespace Storage.Api.Lss;
 
@@ -22,30 +23,35 @@ internal sealed class BucketStorage : IBucketStorage
         _partStorage ??= AddActivePart();
     }
 
-    public DataLocation Write(FileHeader fileHeader, Stream data)
+    public async Task<DataLocation> Write(FileHeader fileHeader, Stream data, CancellationToken token)
     {
-        if (_partStorage.TryWrite(fileHeader, data, out var offset))
+        var offset = await _partStorage.TryWrite(fileHeader, data, token);
+        if (offset >= 0)
             return new(_bucketName, _partStorage.PartNumber, offset);
 
         _partStorage.Close();
         _partStorage = AddActivePart();
 
-        return !_partStorage.TryWrite(fileHeader, data, out offset)
-            ? throw new InvalidOperationException("Failed to write data")
-            : new(_bucketName, _partStorage.PartNumber, offset);
+        offset = await _partStorage.TryWrite(fileHeader, data, token);
+        return offset >= 0
+            ? new(_bucketName, _partStorage.PartNumber, offset)
+            : throw new InvalidOperationException("Failed to write data");
     }
 
     public string Name => _bucketName;
 
-    public (FileHeader fileHeader, byte[] data) Read(DataLocation location) =>
-        _partsMap.TryGetValue(location.PartNumber, out var part)
-            ? part.Read(location.Offset)
-            : throw new InvalidOperationException($"Part {location.PartNumber} not found");
+    public async Task Read(DataLocation location, Action<FileHeader> headerCallback, Stream outStream, CancellationToken token)
+    {
+        if (_partsMap.TryGetValue(location.PartNumber, out var part))
+            await part.Read(location.Offset, outStream, headerCallback, token);
+        else
+            throw new InvalidOperationException($"Part {location.PartNumber} not found");
+    }
 
-    public void DeleteAll()
+    public async Task DeleteAll(CancellationToken token)
     {
         foreach (var part in _partsMap.Values)
-            part.Delete();
+            await part.Delete(token);
         _partsMap.Clear();
         if (Directory.Exists(_bucketHotDir))
             Directory.Delete(_bucketHotDir, true);
@@ -57,32 +63,15 @@ internal sealed class BucketStorage : IBucketStorage
             part.Dispose();
     }
 
-    public IReadOnlyList<int> ApplyRetentionPolicy(RetentionPolicy policy)
+    public async Task ApplyRetentionPolicy(RetentionPolicy policy, CancellationToken token)
     {
-        var removed = new List<int>();
         var parts = _partsMap.Values.ToList();
         foreach (var part in parts)
         {
-            if (part.CanWrite)
-                continue;
-            // Полное время жизни складывается из горячего и холодного.
-            if (part.MaxTime + policy.TtlHot + policy.TtlCold < DateTimeOffset.UtcNow)
-            {
-                part.Delete();
-                if (_partsMap.Remove(part.PartNumber, out var p))
-                    removed.Add(p.PartNumber);
-            }
-            else if (part.IsHot && part.MaxTime + policy.TtlHot < DateTimeOffset.UtcNow)
-            {
-                part.MakeCold(_bucketColdDir);
-            }
-            else
-            {
-                // Пускай еще побудет тепленьким.
-            }
+            var partType = await part.ApplyRetentionPolicy(policy, _bucketColdDir, token);
+            if (partType == PartTypeEnum.Deleted)
+                _partsMap.Remove(part.PartNumber, out var p);
         }
-
-        return removed.AsReadOnly();
     }
 
     private void LoadParts(string bucketDir, bool isHot)
@@ -97,10 +86,10 @@ internal sealed class BucketStorage : IBucketStorage
             .EnumerateFiles(bucketDir, "*.lss", SearchOption.AllDirectories);
         foreach (var partFile in partFiles)
         {
-            var part = new PartStorage(partFile, isHot);
+            var part = PartStorage.Create(partFile);
             if (!_partsMap.TryAdd(part.PartNumber, part))
                 throw new InvalidOperationException($"Duplicate part number {part.PartNumber}");
-            if (!part.CanWrite)
+            if (!part.IsHot)
                 continue;
             if (_partStorage != null)
                 throw new InvalidOperationException(
@@ -115,7 +104,7 @@ internal sealed class BucketStorage : IBucketStorage
         var nextPartNumber = _partsMap.Keys.Count > 0
             ? _partsMap.Keys.Max() + 1
             : 0;
-        var partStorage = new PartStorage(_bucketHotDir, nextPartNumber, _partSizeMb);
+        var partStorage = PartStorage.Create(_bucketHotDir, nextPartNumber, _partSizeMb);
         if (!_partsMap.TryAdd(nextPartNumber, partStorage))
             throw new InvalidOperationException($"Duplicate part number {nextPartNumber}");
         return partStorage;

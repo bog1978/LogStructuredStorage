@@ -1,5 +1,6 @@
 ﻿using System.Collections.Concurrent;
 using Microsoft.Extensions.Options;
+using Storage.Api.Lss.Model;
 using Storage.Api.Options;
 using Storage.Cluster;
 
@@ -29,29 +30,17 @@ internal sealed class NodeStorage : INodeStorage
             key,
             _options.PartSizeMb));
 
-    public void DeleteAll()
+    public async Task DeleteAll(CancellationToken token)
     {
         foreach (var bucketStorage in _bucketMap.Values)
-            bucketStorage.DeleteAll();
+            await bucketStorage.DeleteAll(token);
         _bucketMap.Clear();
     }
 
-    public IReadOnlyDictionary<string, List<int>> ApplyRetentionPolicy(Func<string, RetentionPolicy> policyFunc)
+    public async Task ApplyRetentionPolicy(Func<string, RetentionPolicy> policyFunc, CancellationToken token)
     {
-        var result = new Dictionary<string, List<int>>();
         foreach (var bucketStorage in _bucketMap.Values)
-        {
-            var ids = bucketStorage.ApplyRetentionPolicy(policyFunc(bucketStorage.Name));
-            if (!result.TryGetValue(bucketStorage.Name, out var ints))
-            {
-                ints = new List<int>();
-                result.Add(bucketStorage.Name, ints);
-            }
-
-            ints.AddRange(ids);
-        }
-
-        return result.AsReadOnly();
+            await bucketStorage.ApplyRetentionPolicy(policyFunc(bucketStorage.Name), token);
     }
 
     public void Dispose()

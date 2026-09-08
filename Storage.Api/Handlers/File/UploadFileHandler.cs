@@ -8,6 +8,7 @@ using Storage.Api.Exceptions;
 using Storage.Api.Handlers.Metadata;
 using Storage.Api.Internal;
 using Storage.Api.Lss;
+using Storage.Api.Lss.Model;
 using Storage.Api.Options;
 
 namespace Storage.Api.Handlers.File;
@@ -50,7 +51,7 @@ internal class UploadFileHandler : IEndpointHandler
             DateTimeOffset.UtcNow);
 
         await using var data = formFile.OpenReadStream();
-        var location = bucketStorage.Write(fileHeader, data);
+        var location = await bucketStorage.Write(fileHeader, data, token);
 
         var fileKey = MappingExt.GetFileKey(options.Value.NodeName, bucketId, location.PartNumber, location.Offset);
 

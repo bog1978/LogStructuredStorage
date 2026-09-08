@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using Storage.Api.Lss;
+using Storage.Api.Lss.Model;
 
 namespace Storage.Tests;
 
@@ -14,7 +15,7 @@ public class PartStorageTests
             Directory.Delete(RootPath, true);
         Directory.CreateDirectory(RootPath);
     }
-    
+
     [OneTimeTearDown]
     public void Cleanup()
     {
@@ -26,13 +27,13 @@ public class PartStorageTests
     }
 
     [Test]
-    public void GenericTest()
+    public async Task GenericTest()
     {
         var rootPath = $"{RootPath}\\test1";
         var offsetList = new List<(long Len, string Hash)>();
 
         string partPath;
-        using (var ps0 = new PartStorage(rootPath, 0, 100_000_000))
+        using (var ps0 = PartStorage.Create(rootPath, 0, 100))
         {
             partPath = ps0.PartPath;
             for (var i = 0; i < 10; i++)
@@ -43,13 +44,14 @@ public class PartStorageTests
                 var wHash = Convert.ToBase64String(SHA256.HashData(wData));
                 var fileHeader = new FileHeader("test_file.tmp", "", size, DateTimeOffset.UtcNow);
                 using var ms = new MemoryStream(wData);
-                if (!ps0.TryWrite(fileHeader, ms, out var offset))
+                var offset = await ps0.TryWrite(fileHeader, ms, CancellationToken.None);
+                if (offset < 0)
                     break;
                 offsetList.Add((offset, wHash));
             }
         }
 
-        using (var ps1 = new PartStorage(partPath, true))
+        using (var ps1 = PartStorage.Create(partPath))
         {
             while (true)
             {
@@ -59,17 +61,20 @@ public class PartStorageTests
                 var wHash = Convert.ToBase64String(SHA256.HashData(wData));
                 var fileHeader = new FileHeader("test_file.tmp", "", size, DateTimeOffset.UtcNow);
                 using var ms = new MemoryStream(wData);
-                if (!ps1.TryWrite(fileHeader, ms, out var offset))
+                var offset = await ps1.TryWrite(fileHeader, ms, CancellationToken.None);
+                if (offset < 0)
                     break;
                 offsetList.Add((offset, wHash));
             }
         }
 
-        using (var ps2 = new PartStorage(partPath, true))
+        using (var ps2 = PartStorage.Create(partPath))
         {
             foreach (var (offset, wHash) in offsetList)
             {
-                var (_, rData) = ps2.Read(offset);
+                using var ms = new MemoryStream();
+                await ps2.Read(offset, ms, _ => { }, CancellationToken.None);
+                var rData = ms.ToArray();
                 var rHash = Convert.ToBase64String(SHA256.HashData(rData));
                 Assert.That(rHash, Is.EqualTo(wHash));
             }
@@ -77,12 +82,12 @@ public class PartStorageTests
     }
 
     [Test]
-    public void ReadOnlyTest()
+    public async Task ReadOnlyTest()
     {
         var rootPath = $"{RootPath}\\test2";
 
         string partPath;
-        using (var ps0 = new PartStorage(rootPath, 1, 100_000_000))
+        using (var ps0 = PartStorage.Create(rootPath, 1, 100))
         {
             partPath = ps0.PartPath;
             while (true)
@@ -92,12 +97,13 @@ public class PartStorageTests
                 Random.Shared.NextBytes(wData);
                 var fileHeader = new FileHeader("test_file.tmp", "", size, DateTimeOffset.UtcNow);
                 using var ms = new MemoryStream(wData);
-                if (!ps0.TryWrite(fileHeader, ms, out _))
+                var offset = await ps0.TryWrite(fileHeader, ms, CancellationToken.None);
+                if (offset < 0)
                     break;
             }
         }
 
-        using (var ps1 = new PartStorage(partPath, true))
+        using (var ps1 = PartStorage.Create(partPath))
         {
             var size = Random.Shared.Next(500_000, 5_000_000);
             var wData = new byte[size];
@@ -106,7 +112,7 @@ public class PartStorageTests
             {
                 var fileHeader = new FileHeader("test_file.tmp", "", size, DateTimeOffset.UtcNow);
                 using var ms = new MemoryStream(wData);
-                Assert.That(ps1.TryWrite(fileHeader, ms, out var offset), Is.False);
+                var offset = await ps1.TryWrite(fileHeader, ms, CancellationToken.None);
                 Assert.That(offset, Is.EqualTo(-1));
             }
         }

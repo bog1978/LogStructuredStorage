@@ -1,7 +1,9 @@
-﻿namespace Storage.Api.Lss;
+﻿using Storage.Api.Lss.Model;
+
+namespace Storage.Api.Lss;
 
 internal interface IBucketStorage : IDisposable
 {
-    DataLocation Write(FileHeader fileHeader, Stream data);
-    (FileHeader fileHeader, byte[] data) Read(DataLocation location);
+    Task<DataLocation> Write(FileHeader fileHeader, Stream data, CancellationToken token);
+    Task Read(DataLocation location, Action<FileHeader> headerCallback, Stream outStream, CancellationToken token);
 }
