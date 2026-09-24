@@ -1,6 +1,8 @@
-﻿using System.Text;
+﻿using System.Diagnostics;
+using System.Text;
 using DotNext.Threading;
 using Storage.Api.Lss.Model;
+using Storage.Api.Internal;
 
 namespace Storage.Api.Lss;
 
@@ -30,6 +32,8 @@ internal sealed class PartStorage : IDisposable
         Stream inStream,
         CancellationToken token)
     {
+        using var activity = StorageTelemetry.Activity.StartActivity()
+            ?.WithDisplayName($"Запись файла {fileHeader.FileName} в раздел {_partPath}");
         var isLocked = false;
         try
         {
@@ -50,6 +54,7 @@ internal sealed class PartStorage : IDisposable
             {
                 _partHeader = _writer.MakeWarmPart(_partHeader);
                 Close();
+                activity?.AddEvent($"Запись файла {fileHeader.FileName} в раздел {_partPath} не удалась, т.к. файл не поместился. Раздел переведен в статус 'теплый'.");
                 return -1;
             }
             else
@@ -59,8 +64,14 @@ internal sealed class PartStorage : IDisposable
                 await inStream.CopyToAsync(_writer.BaseStream, token);
                 _writer.Flush();
                 _partHeader = _writer.UpdateWriteOffset(_partHeader);
+                activity?.AddEvent($"Запись файла {fileHeader.FileName} в раздел {_partPath} успешно завершена.");
                 return offset;
             }
+        }
+        catch (Exception ex)
+        {
+            activity?.SetError(ex);
+            throw;
         }
         finally
         {
@@ -75,6 +86,8 @@ internal sealed class PartStorage : IDisposable
         Action<FileHeader> headersCallback,
         CancellationToken token)
     {
+        using var activity = StorageTelemetry.Activity.StartActivity()
+            ?.WithDisplayName($"Чтение файла по смещению {offset} из раздела {_partPath}");
         var isLocked = false;
         try
         {
@@ -87,7 +100,13 @@ internal sealed class PartStorage : IDisposable
             headersCallback(fileHeader);
             // TODO: Переделать на асинхронное копирование диапазона stream в outStream.
             var data = reader.ReadBytes(fileHeader.Length);
+            activity?.AddEvent($"Файл {fileHeader.FileName} прочитан из раздела {_partPath}");
             await outStream.WriteAsync(data, token);
+        }
+        catch (Exception ex)
+        {
+            activity?.SetError(ex);
+            throw;
         }
         finally
         {
@@ -98,6 +117,9 @@ internal sealed class PartStorage : IDisposable
 
     public async Task Delete(CancellationToken token)
     {
+        using var activity = StorageTelemetry.Activity.StartActivity()
+            ?.WithDisplayName($"Удаление раздела {_partPath}");
+
         var isLocked = false;
         try
         {
@@ -105,7 +127,13 @@ internal sealed class PartStorage : IDisposable
             isLocked = true;
             Close();
             File.Delete(_partPath);
+            activity?.AddEvent($"Раздел {_partPath} удален.");
             _partHeader = _partHeader with { PartType = PartTypeEnum.Deleted };
+        }
+        catch (Exception ex)
+        {
+            activity?.SetError(ex);
+            throw;
         }
         finally
         {
@@ -118,6 +146,9 @@ internal sealed class PartStorage : IDisposable
     {
         var isLockedRead = false;
 
+        using var activity = StorageTelemetry.Activity.StartActivity()
+            ?.WithDisplayName($"Применение политики хранения для раздела {_partPath}");
+
         try
         {
             await _lock.EnterReadLockAsync(token);
@@ -129,10 +160,16 @@ internal sealed class PartStorage : IDisposable
             // Полное время жизни складывается из горячего и холодного.
             if (_partHeader.MaxTime + policy.TtlHot + policy.TtlCold < DateTimeOffset.UtcNow)
                 await DeleteInternal(token);
-            else if (_partHeader.PartType == PartTypeEnum.Warm && _partHeader.MaxTime + policy.TtlHot < DateTimeOffset.UtcNow)
+            else if (_partHeader.PartType == PartTypeEnum.Warm &&
+                     _partHeader.MaxTime + policy.TtlHot < DateTimeOffset.UtcNow)
                 await MakeColdInternal(bucketColdDir, token);
 
             return _partHeader.PartType;
+        }
+        catch (Exception ex)
+        {
+            activity?.SetError(ex);
+            throw;
         }
         finally
         {
@@ -159,17 +196,21 @@ internal sealed class PartStorage : IDisposable
 
     private async Task MakeColdInternal(string bucketColdDir, CancellationToken token)
     {
+        var activity = Activity.Current;
         var isLocked = false;
         try
         {
             if (!Directory.Exists(bucketColdDir))
+            {
                 Directory.CreateDirectory(bucketColdDir);
+                activity?.AddEvent($"Создана директория для холодных разделов: {bucketColdDir}");
+            }
 
             await _lock.UpgradeToWriteLockAsync(token);
             isLocked = true;
 
             if (_partHeader.PartType == PartTypeEnum.Cold)
-                throw new InvalidOperationException("Part is already cold");
+                throw new InvalidOperationException("Раздел уже холодный");
 
             // TODO: Копировать сразу с новым заголовком. Тогда можно будет использовать EnterReadLockAsync,
             // TODO: а перед удалением - UpgradeToWriteLockAsync.
@@ -180,8 +221,12 @@ internal sealed class PartStorage : IDisposable
             await using (var srcStream = new FileStream(_partPath, FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite))
             await using (var dstStream = new FileStream(newPath, FileMode.Create, FileAccess.ReadWrite, FileShare.ReadWrite))
                 await srcStream.CopyToAsync(dstStream, token);
+            activity?.AddEvent($"Раздел {_partPath} скопирован в холодное хранилище: {newPath}");
+
             Close();
             File.Delete(_partPath);
+            activity?.AddEvent($"Раздел {_partPath} удален из горячего хранилища и перенесен в холодное: {newPath}");
+
             _partPath = newPath;
             (_partHeader, _writer) = LoadPart(_partPath);
         }
@@ -194,13 +239,16 @@ internal sealed class PartStorage : IDisposable
 
     private async Task DeleteInternal(CancellationToken token)
     {
+        var activity = Activity.Current;
         var isLocked = false;
+
         try
         {
             await _lock.UpgradeToWriteLockAsync(token);
             isLocked = true;
             Close();
             File.Delete(_partPath);
+            activity?.AddEvent($"Раздел {_partPath} удален.");
             _partHeader = _partHeader with { PartType = PartTypeEnum.Deleted };
         }
         finally

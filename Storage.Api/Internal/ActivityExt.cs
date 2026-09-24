@@ -31,5 +31,13 @@ internal static class ActivityExt
             activity.AddEvent(activityEvent);
             return activity;
         }
+
+        public Activity SetError(Exception exception)
+        {
+            activity
+                .AddException(exception)
+                .SetStatus(ActivityStatusCode.Error, exception.Message);
+            return activity;
+        }
     }
 }

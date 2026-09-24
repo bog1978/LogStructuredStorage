@@ -124,18 +124,14 @@ internal sealed class BucketStorage : IBucketStorage
                 }
                 catch (Exception ex2)
                 {
-                    partActivity?
-                        .AddException(ex2)
-                        .SetStatus(ActivityStatusCode.Error);
+                    partActivity?.SetError(ex2);
                     throw;
                 }
             }
         }
-        catch (Exception e)
+        catch (Exception ex1)
         {
-            bucketActivity?
-                .AddException(e)
-                .SetStatus(ActivityStatusCode.Error);
+            bucketActivity?.SetError(ex1);
             throw;
         }
     }
