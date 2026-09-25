@@ -26,6 +26,8 @@ internal sealed class BucketStorage : IBucketStorage
         _partStorage ??= AddActivePart();
     }
 
+    public string Name => _bucketName;
+
     public async Task<DataLocation> Write(FileHeader fileHeader, Stream data, CancellationToken token)
     {
         using var activity = StorageTelemetry.Activity.StartActivity()
@@ -69,8 +71,6 @@ internal sealed class BucketStorage : IBucketStorage
         throw new InvalidOperationException("Failed to write data");
     }
 
-    public string Name => _bucketName;
-
     public async Task Read(DataLocation location, Action<FileHeader> headerCallback, Stream outStream,
         CancellationToken token)
     {
@@ -88,9 +88,17 @@ internal sealed class BucketStorage : IBucketStorage
         using var activity = StorageTelemetry.Activity.StartActivity()
             ?.WithDisplayName($"Удаление корзины {_bucketName} вместе с файлами.");
 
-        foreach (var part in _partsMap.Values)
+        List<PartStorage> parts;
+        lock (_lock)
+        {
+            parts = _partsMap.Values.ToList();
+            _partsMap.Clear();
+            // NOTE: _partStorage объявлен как не nullable, но в этом месте он может быть null.  
+            //_partStorage = null;
+        }
+        
+        foreach (var part in parts)
             await part.Delete(token);
-        _partsMap.Clear();
         if (Directory.Exists(_bucketHotDir))
             Directory.Delete(_bucketHotDir, true);
     }
