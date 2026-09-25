@@ -178,7 +178,7 @@ internal sealed class PartStorage : IDisposable
         }
     }
 
-    public void Close()
+    private void Close()
     {
         if (_writer == null)
             return;
@@ -190,7 +190,6 @@ internal sealed class PartStorage : IDisposable
     public void Dispose()
     {
         Close();
-        _writer?.Dispose();
         _lock.Dispose();
     }
 

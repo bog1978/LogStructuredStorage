@@ -1,5 +1,4 @@
 ﻿using System.Collections.Concurrent;
-using System.Diagnostics;
 using Storage.Api.Internal;
 using Storage.Api.Lss.Model;
 
@@ -7,12 +6,14 @@ namespace Storage.Api.Lss;
 
 internal sealed class BucketStorage : IBucketStorage
 {
+    private const int WriteRetryCount = 10;
     private readonly string _bucketName;
     private readonly int _partSizeMb;
     private readonly string _bucketHotDir;
     private readonly string _bucketColdDir;
     private readonly ConcurrentDictionary<int, PartStorage> _partsMap = new();
-    private PartStorage _partStorage;
+    private volatile PartStorage _partStorage;
+    private readonly Lock _lock = new();
 
     public BucketStorage(string hotDir, string coldDir, string bucketName, int partSizeMb)
     {
@@ -30,17 +31,42 @@ internal sealed class BucketStorage : IBucketStorage
         using var activity = StorageTelemetry.Activity.StartActivity()
             ?.WithDisplayName($"Запись файла {fileHeader.FileName} в корзину {_bucketName}");
 
-        var offset = await _partStorage.TryWrite(fileHeader, data, token);
-        if (offset >= 0)
-            return new(_bucketName, _partStorage.PartNumber, offset);
+        // Запоминаем раздел, с которым работаем.
+        PartStorage hotPart;
+        lock (_lock)
+            hotPart = _partStorage;
 
-        _partStorage.Close();
-        _partStorage = AddActivePart();
-
-        offset = await _partStorage.TryWrite(fileHeader, data, token);
-        return offset >= 0
-            ? new(_bucketName, _partStorage.PartNumber, offset)
-            : throw new InvalidOperationException("Failed to write data");
+        // Если другой поток успел создать новый горячий раздел и заполнить его,
+        // то нужно будет делать повторные попытки. Но это не штатная ситуация,
+        // т.к. файлы должны быть маленькие, а разделы - большие. Даже если идет
+        // запись в несколько потоков, то они все равно не успеют заполнить раздел
+        // между созданием нового горячего раздела и записью в него.
+        // Этот цикл - перестраховка на всякий случай.
+        for (var i = 0; i < WriteRetryCount; i++)
+        {
+            var offset = await hotPart.TryWrite(fileHeader, data, token);
+            if (offset >= 0)
+                return new(_bucketName, hotPart.PartNumber, offset);
+            
+            lock (_lock)
+                if(ReferenceEquals(_partStorage, hotPart))
+                {
+                    // Создаем новый горячий раздел. Это нормальная ситуация: начали писать
+                    // в горячий раздел, но он заполнился и создали новый, чтобы продолжить писать.
+                    hotPart = AddActivePart();
+                    _partStorage = hotPart;
+                }
+                else
+                {
+                    // В результате гонок другой поток уже мог создать новый горячий раздел.
+                    // Будем писать в тот, который уже есть.
+                    hotPart = _partStorage;
+                }
+        }
+        
+        // В этом месте новый горячий раздел создан, но записи в него не было.
+        // Ничего страшного в этом нет, т.к. при следующей записи он все равно создался бы.
+        throw new InvalidOperationException("Failed to write data");
     }
 
     public string Name => _bucketName;
