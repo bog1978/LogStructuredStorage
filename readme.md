@@ -1,12 +1,312 @@
-﻿Библиотеки асинхронных блокировок.
+﻿# Log-Structured Storage (LSS)
 
-- https://www.nuget.org/packages/NeoSmart.AsyncLock
-- https://github.com/dotnet/dotNext
-- https://dotnet.github.io/dotNext/features/threading/rwlock.html
-- https://github.com/bcuff/AsyncPrimitives
-- https://github.com/osexpert/AsyncReaderWriterLockSlim
-- https://www.nuget.org/packages/VanLangen.Locking.ReadersWriterLockAsync
-- https://www.nuget.org/packages/InSync
-- https://www.nuget.org/packages/AsyncKeyLock
-- https://www.nuget.org/packages/AsyncSharp
-- https://www.nuget.org/packages/AsyncLockCore
+Локальное объектное хранилище файлов, устроенное по принципу **append-only** (данные только дописываются в конец контейнера, а не перезаписываются). По смыслу это упрощённый аналог MinIO/S3: файлы кладутся в **корзины (buckets)** на **узлах (nodes)**, а на диске они живут не как отдельные файлы, а внутри больших контейнеров `.lss`.
+
+Проект рассчитан на сценарии, где много относительно небольших файлов нужно быстро писать, потом читать, а со временем дешево «остужать» и удалять по TTL (срок жизни).
+
+---
+
+## Зачем это нужно
+
+Обычная файловая система плохо переносит миллионы мелких файлов: много inode, случайные записи, сложная очистка. LSS делает иначе:
+
+1. Файлы **склеиваются** в заранее выделенные разделы фиксированного размера (по умолчанию 100 МБ).
+2. Запись идёт **последовательно** в текущий «горячий» раздел.
+3. Когда раздел заполнен, он закрывается для записи и со временем переносится в **холодное** хранилище, а затем удаляется по политике TTL.
+4. Метаданные кластера (узлы и корзины) хранятся в **PostgreSQL**. Сами байты файлов — только на диске узла.
+
+Текущая реализация — **один активный узел** (`node1`). Переадресация запроса на другой узел пока не сделана: если корзина привязана к другому `NodeId`, API вернёт ошибку «не реализовано».
+
+---
+
+## Как устроено хранение
+
+Иерархия такая:
+
+```
+Узел (NodeStorage)
+  └── Корзина (BucketStorage)     — логический контейнер, как bucket в S3
+        └── Раздел (PartStorage)  — файл 0000000000.lss, 0000000001.lss, …
+              └── Записи файлов   — заголовок + тело, одно за другим
+```
+
+На диске (пути задаются в конфигурации):
+
+```
+HotPath / <имя_корзины> / 0000000000.lss   — горячие и тёплые разделы
+ColdPath / <имя_корзины> / 0000000000.lss  — холодные разделы
+```
+
+### Жизненный цикл раздела
+
+| Статус | Что можно делать | Когда появляется |
+|--------|------------------|------------------|
+| **Hot** | читать и писать | новый раздел, пока в него ещё помещаются данные |
+| **Warm** | только читать | файл не поместился — раздел закрыт, `WritePosition = -1` |
+| **Cold** | только читать | истек TTL горячего хранения (`TtlHot` от `MaxTime` раздела) |
+| **Deleted** | ничего | истек полный TTL: `TtlHot + TtlCold` |
+
+Фоновый сервис `PolicyService` раз в `PolicyInterval` (по умолчанию 60 секунд) читает TTL корзин из БД и применяет политику ко всем разделам.
+
+### Ключ файла
+
+После загрузки API возвращает ключ вида:
+
+```
+{имя_узла}:{имя_корзины}:{номер_раздела}:{смещение}
+```
+
+Пример: `node1:test-bucket:0:128`. По этому ключу файл скачивается. Смещение — позиция заголовка файла внутри `.lss`.
+
+---
+
+## Состав решения
+
+| Проект | Назначение |
+|--------|------------|
+| **Storage.Api** | HTTP-сервис: корзины, узлы, загрузка/скачивание, миграции БД, LSS-движок |
+| **Storage.Client** | Сгенерированный Refit-клиент (`IStorageApi`) для вызова API из других приложений |
+| **Storage.Uploader** | Демонстрационная утилита: создаёт тестовую корзину и заливает 100 случайных файлов |
+| **Storage.Tests** | NUnit-тесты движка (разделы, корзины, узел, политика TTL) |
+
+Стек: **.NET 10**, ASP.NET Core Minimal API, PostgreSQL 16, linq2db, Evolve (миграции), OpenTelemetry → Seq, Docker Compose.
+
+---
+
+## Что нужно установить
+
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) — PostgreSQL, Seq и (по желанию) сам API.
+- [.NET 10 SDK](https://dotnet.microsoft.com/download) — локальный запуск API, клиента, тестов.
+- Каталоги на диске для данных (сейчас в конфигах зашиты Windows-пути):
+  - Docker: `D:\Share\docker` (внутри контейнера это `/mnt/lssData`).
+  - Локальный API: `D:\Share\docker\node1\hot` и `...\cold`.
+  - Тесты: `D:\Share\lss\...` и `D:\Share\storage\node1\...`.
+
+Если этих папок нет — создайте их или поменяйте пути в `appsettings.json` / `docker-compose.yml`.
+
+---
+
+## Запуск
+
+Самый простой путь для знакомства: поднять инфраструктуру Docker, затем API (либо тоже в Docker, либо из IDE).
+
+### 1. Docker Compose
+
+Из корня репозитория:
+
+```bat
+compose.cmd
+```
+
+или:
+
+```bat
+docker compose up -d --build
+```
+
+Поднимаются три контейнера:
+
+| Сервис | Порт на хосте | Назначение |
+|--------|---------------|------------|
+| **lss-api** | http://localhost:9086 | API хранилища, Swagger, `/health` |
+| **lss-db** | localhost:6432 | PostgreSQL, БД `lss_cluster`, пользователь `lss_user` / `lss_password` |
+| **lss-seq** | http://localhost:6341 | Логи и трассировки OpenTelemetry |
+
+При старте API:
+
+1. Создаёт БД, если её ещё нет.
+2. Накатывает SQL-миграции из `Storage.Api/Migrations`.
+3. Регистрирует узел `node1` в таблице `node`.
+
+Проверка: http://localhost:9086/health и http://localhost:9086/swagger (Swagger включён в среде Development).
+
+Остановка: `docker compose down`. Данные Postgres/Seq живут в Docker-томах `lss-data` и `seq-data`.
+
+### 2. API из Visual Studio / Rider / CLI
+
+Сначала всё равно нужен Postgres (и желательно Seq) из compose. Можно поднять только БД:
+
+```bat
+docker compose up -d db seq
+```
+
+Дальше:
+
+```bat
+dotnet run --project Storage.Api
+```
+
+Профиль запуска слушает **http://localhost:9086** и открывает Swagger. Строка подключения в `Storage.Api/appsettings.json` уже указывает на `localhost:6432`.
+
+### 3. Демонстрационная заливка файлов
+
+Когда API уже отвечает:
+
+```bat
+dotnet run --project Storage.Uploader
+```
+
+Утилита берёт первый узел из `GET /node`, создаёт корзину `test-bucket` (TTL горячий 1 минута, холодный 1 час) и загружает 100 случайных файлов размером примерно 0.25–4 МБ. Клиент смотрит на `http://localhost:9086` (`Storage.Uploader/appsettings.json`).
+
+Ограничение тела запроса по умолчанию **16 МБ** (`BodySizeLimitMb`). Файлы больше лимита API не примет.
+
+---
+
+## HTTP API
+
+Базовый URL: `http://localhost:9086`.
+
+### Корзины и узлы
+
+| Метод | Путь | Описание |
+|-------|------|----------|
+| `GET` | `/node` | Список узлов кластера |
+| `GET` | `/bucket` | Список корзин |
+| `POST` | `/bucket` | Создать корзину |
+| `GET` | `/bucket/{bucketId}` | Корзина по имени |
+| `PATCH` | `/bucket/{bucketId}` | Изменить узел или TTL |
+
+Тело создания корзины:
+
+```json
+{
+  "bucketId": "demo",
+  "nodeId": "node1",
+  "ttlHot": "00:10:00",
+  "ttlCold": "01:00:00"
+}
+```
+
+`bucketId` — это **имя** корзины (до 16 символов, как в БД). `nodeId` должен совпадать с зарегистрированным узлом (`node1` после первого старта). TTL задаются как `TimeSpan` (в JSON обычно `"чч:мм:сс"`).
+
+### Файлы
+
+| Метод | Путь | Описание |
+|-------|------|----------|
+| `POST` | `/file/{bucketId}` | Загрузка (`multipart/form-data`, поле `formFile`) |
+| `GET` | `/file/{fileKey}` | Скачивание по ключу |
+
+Пример через curl (корзина `demo` уже создана):
+
+```bat
+curl -X POST http://localhost:9086/file/demo -F "formFile=@C:\temp\hello.txt"
+```
+
+В ответе придёт ключ. Скачивание:
+
+```bat
+curl -OJ http://localhost:9086/file/node1:demo:0:128
+```
+
+Имя и Content-Type восстанавливаются из заголовка внутри `.lss`.
+
+### Здоровье
+
+`GET /health` — проверка, что процесс жив (используется Docker healthcheck).
+
+---
+
+## Как проверить, что всё работает
+
+Минимальный сценарий «с нуля»:
+
+1. `docker compose up -d --build` и дождаться healthy у `lss-api`.
+2. Открыть Swagger: http://localhost:9086/swagger.
+3. `GET /node` — должен быть `node1`.
+4. `POST /bucket` с `bucketId: "demo"`, `nodeId: "node1"`.
+5. Загрузить любой небольшой файл в `/file/demo`.
+6. Скачать его по возвращённому ключу — содержимое должно совпасть.
+7. На диске появится что-то вроде `D:\Share\docker\node1\hot\demo\0000000000.lss`.
+8. По желанию запустить `Storage.Uploader` и посмотреть логи/трейсы в Seq: http://localhost:6341.
+
+Если раздел заполнится (много крупных файлов), появится следующий файл `0000000001.lss`, а предыдущий станет тёплым. Через `TtlHot` после `MaxTime` раздела файл переедет в `ColdPath`, через `TtlHot + TtlCold` — удалится.
+
+---
+
+## Автотесты
+
+Тесты в `Storage.Tests` проверяют **движок LSS**, а не HTTP. Они пишут реальные `.lss` на диск и сверяют SHA-256 записанных и прочитанных данных.
+
+```bat
+dotnet test Storage.Tests
+```
+
+Что покрыто:
+
+- **PartStorageTests** — запись в раздел, переоткрытие файла, отказ писать в уже закрытый (тёплый) раздел.
+- **BucketStorageTests** — 100 файлов в корзину, пересоздание `BucketStorage` и чтение по сохранённым смещениям.
+- **NodeStorageTests** — несколько корзин, 500 случайных записей, применение политики с нулевым TTL (разделы должны удалиться).
+
+Важно: в тестах зашиты пути `D:\Share\lss\...` и `D:\Share\storage\...`. Без права писать туда тесты упадут на старте. Для CI или другой машины поменяйте константы в тестовых классах и `Storage.Tests/appsettings.json`.
+
+NUnit-тесты узла поднимают DI (`AddCluster`), но **не стартуют** хост целиком: Postgres для них не обязателен. Для полного API всё равно нужна БД.
+
+---
+
+## Конфигурация (`StorageOptions`)
+
+| Параметр | Смысл | Пример |
+|----------|--------|--------|
+| `HotPath` | Каталог горячего/тёплого хранения | `D:\Share\docker\node1\hot\` |
+| `ColdPath` | Каталог холодного хранения | `D:\Share\docker\node1\cold\` |
+| `PartSizeMb` | Размер одного `.lss` (100–1024) | `100` |
+| `ConnectionString` | PostgreSQL кластера | см. `appsettings.json` |
+| `NodeName` | Имя этого узла, минимум 5 символов | `node1` |
+| `PolicyInterval` | Как часто применять TTL | `00:01:00` |
+| `BodySizeLimitMb` | Лимит тела HTTP-запроса | `16` |
+
+В Docker те же ключи задаются переменными `StorageOptions__HotPath` и т.д.
+
+OpenTelemetry: логи, трейсы и метрики уходят в Seq (`OTEL_EXPORTER_OTLP_ENDPOINT`). Имя сервиса — `Storage.Api`.
+
+---
+
+## Клиент для своих приложений
+
+Проект `Storage.Client` подключается к API через Refit. Регистрация:
+
+```csharp
+services.AddStorageClient(configuration);
+```
+
+В конфигурации нужен раздел:
+
+```json
+"ClientOptions": {
+  "BaseUri": "http://localhost:9086"
+}
+```
+
+После этого в DI появляется `IStorageApi` (`GetBucketsAsync`, `CreateBucketAsync`, `UploadFileAsync`, `DownloadFileAsync`, …).
+
+Клиент **генерируется** из живого Swagger. Если контракт API изменился, при запущенном сервисе:
+
+```bat
+cd Storage.Client
+gen_client.cmd
+```
+
+Скрипт скачивает `swagger.json` и вызывает [Refitter](https://github.com/christianhelle/refitter).
+
+---
+
+## Полезные скрипты в корне
+
+| Файл | Действие |
+|------|----------|
+| `compose.cmd` | Собрать образ API и поднять весь стек в фоне |
+| `clean.cmd` | `git clean` артефактов сборки (осторожно: удаляет неотслеживаемые файлы, кроме `*.cmd`) |
+
+---
+
+## Ограничения текущей версии
+
+Это рабочий прототип, не готовый прод-кластер:
+
+- один узел; запросы к «чужому» узлу не проксируются;
+- таблица `file` в БД уже удалена миграцией — каталог файлов живёт только в ключах и на диске;
+- нет аутентификации (CORS открыт для всех origin);
+- размер одного загружаемого файла ограничен и `BodySizeLimitMb`, и размером раздела: файл должен целиком поместиться в один `.lss`;
+- пути данных в репозитории ориентированы на Windows (`D:\Share\...`).
+
+Имеет смысл начать изучение с `Storage.Api/Lss` (`PartStorage` → `BucketStorage` → `NodeStorage`), затем хендлеры в `Storage.Api/Handlers` и фоновую политику в `Services/PolicyService.cs`.
