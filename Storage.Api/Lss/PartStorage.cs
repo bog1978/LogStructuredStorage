@@ -12,6 +12,7 @@ internal sealed class PartStorage : IDisposable
     private BinaryWriter? _writer;
     private PartHeader _partHeader;
     private string _partPath;
+    private bool _disposed;
 
     private PartStorage(string partPath, PartHeader partHeader, BinaryWriter? writer)
     {
@@ -46,7 +47,7 @@ internal sealed class PartStorage : IDisposable
             if (_writer == null)
                 throw new InvalidOperationException("Writer is null");
 
-            if (fileHeader.Length != inStream.Length)
+            if (inStream.CanSeek && inStream.Length != fileHeader.Length)
                 throw new InvalidOperationException("File length mismatch");
 
             var headerBytes = FileHeader.ToBytes(fileHeader);
@@ -189,6 +190,9 @@ internal sealed class PartStorage : IDisposable
 
     public void Dispose()
     {
+        if (_disposed)
+            return;
+        _disposed = true;
         Close();
         _lock.Dispose();
     }

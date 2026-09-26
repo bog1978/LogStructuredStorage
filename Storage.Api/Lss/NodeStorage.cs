@@ -9,6 +9,7 @@ namespace Storage.Api.Lss;
 internal sealed class NodeStorage : INodeStorage
 {
     private readonly StorageOptions _options;
+    private bool _disposed;
 
     private readonly ConcurrentDictionary<string, BucketStorage> _bucketMap = new();
 
@@ -45,6 +46,9 @@ internal sealed class NodeStorage : INodeStorage
 
     public void Dispose()
     {
+        if (_disposed)
+            return;
+        _disposed = true;
         foreach (var bucketStorage in _bucketMap.Values)
             bucketStorage.Dispose();
     }

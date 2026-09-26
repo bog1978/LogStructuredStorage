@@ -144,6 +144,8 @@ internal sealed class BucketStorage : IBucketStorage
     {
         lock (_lock)
         {
+            if (_partStorage == null)
+                return;
             foreach (var part in _partsMap.Values)
                 part.Dispose();
             _partsMap.Clear();
