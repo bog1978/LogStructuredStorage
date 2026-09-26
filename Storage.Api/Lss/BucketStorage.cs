@@ -4,6 +4,11 @@ using Storage.Api.Lss.Model;
 
 namespace Storage.Api.Lss;
 
+/// <summary>
+/// Хранит данные корзины в виде набора файлов-разделов (.lss). Каждый раздел может находиться
+/// в одном из состояний: Hot (чтение + запись), Warm (только чтение), Cold (чтение + удаление).
+/// Синхронизирует одновременный доступ к нескольким разделам из нескольких потоков.
+/// </summary>
 internal sealed class BucketStorage : IBucketStorage
 {
     private const int WriteRetryCount = 10;
@@ -12,7 +17,7 @@ internal sealed class BucketStorage : IBucketStorage
     private readonly string _bucketHotDir;
     private readonly string _bucketColdDir;
     private readonly ConcurrentDictionary<int, PartStorage> _partsMap = new();
-    private volatile PartStorage _partStorage;
+    private volatile PartStorage? _partStorage;
     private readonly Lock _lock = new();
 
     public BucketStorage(string hotDir, string coldDir, string bucketName, int partSizeMb)
@@ -23,7 +28,7 @@ internal sealed class BucketStorage : IBucketStorage
         _bucketColdDir = Path.Combine(coldDir, bucketName);
         LoadParts(_bucketHotDir);
         LoadParts(_bucketColdDir);
-        _partStorage ??= AddActivePart();
+        _partStorage = AddActivePart();
     }
 
     public string Name => _bucketName;
@@ -36,7 +41,10 @@ internal sealed class BucketStorage : IBucketStorage
         // Запоминаем раздел, с которым работаем.
         PartStorage hotPart;
         lock (_lock)
+        {
+            ObjectDisposedException.ThrowIf(_partStorage == null, this);
             hotPart = _partStorage;
+        }
 
         // Если другой поток успел создать новый горячий раздел и заполнить его,
         // то нужно будет делать повторные попытки. Но это не штатная ситуация,
@@ -77,12 +85,19 @@ internal sealed class BucketStorage : IBucketStorage
         using var activity = StorageTelemetry.Activity.StartActivity()
             ?.WithDisplayName($"Чтение файла по смещению {location.Offset} из корзины {_bucketName}");
 
+        lock (_lock)
+            ObjectDisposedException.ThrowIf(_partStorage == null, this);
+
         if (_partsMap.TryGetValue(location.PartNumber, out var part))
             await part.Read(location.Offset, outStream, headerCallback, token);
         else
             throw new InvalidOperationException($"Part {location.PartNumber} not found");
     }
 
+    /// <summary>
+    /// Удаляет все файлы корзины вместе с разделами, но не удаляет саму корзину.
+    /// </summary>
+    /// <param name="token"></param>
     public async Task DeleteAll(CancellationToken token)
     {
         using var activity = StorageTelemetry.Activity.StartActivity()
@@ -91,22 +106,30 @@ internal sealed class BucketStorage : IBucketStorage
         List<PartStorage> parts;
         lock (_lock)
         {
+            ObjectDisposedException.ThrowIf(_partStorage == null, this);
             parts = _partsMap.Values.ToList();
             _partsMap.Clear();
-            // NOTE: _partStorage объявлен как не nullable, но в этом месте он может быть null.  
-            //_partStorage = null;
+            _partStorage = AddActivePart();
         }
-        
+
         foreach (var part in parts)
             await part.Delete(token);
-        if (Directory.Exists(_bucketHotDir))
-            Directory.Delete(_bucketHotDir, true);
     }
 
+    /// <summary>
+    /// Применяет политику хранения к разделам корзины:
+    /// 1. Перемещает тёплые файлы в холодные.
+    /// 2. Удаляет холодные файлы.
+    /// </summary>
+    /// <param name="policy"></param>
+    /// <param name="token"></param>
     public async Task ApplyRetentionPolicy(RetentionPolicy policy, CancellationToken token)
     {
         using var activity = StorageTelemetry.Activity.StartActivity()
             ?.WithDisplayName($"Применение политики хранения для корзины {_bucketName}");
+
+        lock (_lock)
+            ObjectDisposedException.ThrowIf(_partStorage == null, this);
 
         var parts = _partsMap.Values.ToList();
         foreach (var part in parts)
@@ -119,8 +142,13 @@ internal sealed class BucketStorage : IBucketStorage
 
     public void Dispose()
     {
-        foreach (var part in _partsMap.Values)
-            part.Dispose();
+        lock (_lock)
+        {
+            foreach (var part in _partsMap.Values)
+                part.Dispose();
+            _partsMap.Clear();
+            _partStorage = null;
+        }
     }
 
     private void LoadParts(string bucketDir)
