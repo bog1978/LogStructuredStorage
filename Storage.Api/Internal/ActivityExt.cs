@@ -10,12 +10,6 @@ internal static class ActivityExt
 {
     extension(Activity activity)
     {
-        public Activity WithDisplayName(string displayName)
-        {
-            activity.DisplayName = displayName;
-            return activity;
-        }
-
         public Activity WithDisplayName([InterpolatedStringHandlerArgument] ref ActivityInterpolatedStringHandler handler)
         {
             activity.DisplayName = handler.Template;

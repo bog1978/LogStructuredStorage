@@ -35,6 +35,9 @@ internal class UploadFileHandler : IEndpointHandler
         [FromServices] INodeStorage nodeStorage,
         CancellationToken token)
     {
+        using var activity = StorageTelemetry.Activity.StartActivity()
+            ?.WithDisplayName($"Загрузка файла {formFile.FileName} в корзину {bucketId}");
+
         var bucket = await clusterDataAccess.GetBucketAsync(bucketId, token);
         if (bucket == null)
             throw new BucketNotFoundException(bucketId);
@@ -55,7 +58,7 @@ internal class UploadFileHandler : IEndpointHandler
 
         var fileKey = MappingExt.GetFileKey(options.Value.NodeName, bucketId, location.PartNumber, location.Offset);
 
-        logger.LogInformation("File uploaded. Key: {key}", fileKey);
+        activity?.AddEvent($"Файл {formFile.FileName} успешно загружен. Ключ: {fileKey}");
 
         return TypedResults.Created($"/file/{fileKey}", fileKey);
     }

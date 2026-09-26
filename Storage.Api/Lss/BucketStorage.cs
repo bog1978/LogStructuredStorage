@@ -76,7 +76,7 @@ internal sealed class BucketStorage : IBucketStorage
         
         // В этом месте новый горячий раздел создан, но записи в него не было.
         // Ничего страшного в этом нет, т.к. при следующей записи он все равно создался бы.
-        throw new InvalidOperationException("Failed to write data");
+        throw new InvalidOperationException("Не удалось выполнить запись данных");
     }
 
     public async Task Read(DataLocation location, Action<FileHeader> headerCallback, Stream outStream,
@@ -89,9 +89,12 @@ internal sealed class BucketStorage : IBucketStorage
             ObjectDisposedException.ThrowIf(_partStorage == null, this);
 
         if (_partsMap.TryGetValue(location.PartNumber, out var part))
+        {
             await part.Read(location.Offset, outStream, headerCallback, token);
+            activity?.AddEvent($"Файл по смещению {location.Offset} из корзины {_bucketName} отправлен");
+        }
         else
-            throw new InvalidOperationException($"Part {location.PartNumber} not found");
+            throw new InvalidOperationException($"Раздел {location.PartNumber} не найден");
     }
 
     /// <summary>
@@ -138,6 +141,7 @@ internal sealed class BucketStorage : IBucketStorage
             if (partType == PartTypeEnum.Deleted)
                 _partsMap.Remove(part.PartNumber, out var p);
         }
+        activity?.AddEvent($"Обработано {parts.Count} разделов");
     }
 
     public void Dispose()
@@ -207,7 +211,7 @@ internal sealed class BucketStorage : IBucketStorage
             : 0;
         var partStorage = PartStorage.Create(_bucketHotDir, nextPartNumber, _partSizeMb);
         if (!_partsMap.TryAdd(nextPartNumber, partStorage))
-            throw new InvalidOperationException($"Duplicate part number {nextPartNumber}");
+            throw new InvalidOperationException($"Дубликат номера раздела {nextPartNumber}");
         return partStorage;
     }
 }

@@ -1,5 +1,4 @@
-﻿using System.Diagnostics;
-using System.Text;
+﻿using System.Text;
 using DotNext.Threading;
 using Storage.Api.Lss.Model;
 using Storage.Api.Internal;
@@ -42,13 +41,16 @@ internal sealed class PartStorage : IDisposable
             isLocked = true;
 
             if (_partHeader.PartType != PartTypeEnum.Hot)
+            {
+                activity?.AddEvent($"Раздел {_partPath} в статусе {_partHeader.PartType} — запись невозможна");
                 return -1;
+            }
 
             if (_writer == null)
-                throw new InvalidOperationException("Writer is null");
+                throw new InvalidOperationException("Writer равен null");
 
             if (inStream.CanSeek && inStream.Length != fileHeader.Length)
-                throw new InvalidOperationException("File length mismatch");
+                throw new InvalidOperationException("Несоответствие длины файла");
 
             var headerBytes = FileHeader.ToBytes(fileHeader);
             if (_writer.BaseStream.Length < _writer.BaseStream.Position + headerBytes.Length + fileHeader.Length)
@@ -65,7 +67,7 @@ internal sealed class PartStorage : IDisposable
                 await inStream.CopyToAsync(_writer.BaseStream, token);
                 _writer.Flush();
                 _partHeader = _writer.UpdateWriteOffset(_partHeader);
-                activity?.AddEvent($"Запись файла {fileHeader.FileName} в раздел {_partPath} успешно завершена.");
+                activity?.AddEvent($"Запись файла {fileHeader.FileName} в раздел {_partPath} успешно завершена. Offset: {offset}");
                 return offset;
             }
         }
@@ -101,7 +103,7 @@ internal sealed class PartStorage : IDisposable
             headersCallback(fileHeader);
             // TODO: Переделать на асинхронное копирование диапазона stream в outStream.
             var data = reader.ReadBytes(fileHeader.Length);
-            activity?.AddEvent($"Файл {fileHeader.FileName} прочитан из раздела {_partPath}");
+            activity?.AddEvent($"Файл {fileHeader.FileName} прочитан из раздела {_partPath}. Размер: {fileHeader.Length} байт");
             await outStream.WriteAsync(data, token);
         }
         catch (Exception ex)
@@ -128,7 +130,7 @@ internal sealed class PartStorage : IDisposable
             isLocked = true;
             Close();
             File.Delete(_partPath);
-            activity?.AddEvent($"Раздел {_partPath} удален.");
+            activity?.AddEvent($"Раздел {_partPath} удален. Статус: Deleted");
             _partHeader = _partHeader with { PartType = PartTypeEnum.Deleted };
         }
         catch (Exception ex)
@@ -156,14 +158,23 @@ internal sealed class PartStorage : IDisposable
             isLockedRead = true;
 
             if (_partHeader.PartType == PartTypeEnum.Hot)
+            {
+                activity?.AddEvent($"Раздел {_partPath} в статусе Hot — политика не применяется");
                 return _partHeader.PartType;
+            }
 
             // Полное время жизни складывается из горячего и холодного.
             if (_partHeader.MaxTime + policy.TtlHot + policy.TtlCold < DateTimeOffset.UtcNow)
+            {
+                activity?.AddEvent($"Раздел {_partPath} удален (MaxTime={_partHeader.MaxTime}, TtlHot={policy.TtlHot}, TtlCold={policy.TtlCold})");
                 await DeleteInternal(token);
+            }
             else if (_partHeader.PartType == PartTypeEnum.Warm &&
                      _partHeader.MaxTime + policy.TtlHot < DateTimeOffset.UtcNow)
+            {
+                activity?.AddEvent($"Раздел {_partPath} перенесен в холодное хранилище (MaxTime={_partHeader.MaxTime}, TtlHot={policy.TtlHot})");
                 await MakeColdInternal(bucketColdDir, token);
+            }
 
             return _partHeader.PartType;
         }
@@ -199,7 +210,8 @@ internal sealed class PartStorage : IDisposable
 
     private async Task MakeColdInternal(string bucketColdDir, CancellationToken token)
     {
-        var activity = Activity.Current;
+        using var activity = StorageTelemetry.Activity.StartActivity()
+            ?.WithDisplayName($"Перенос раздела {_partPath} в холодное хранилище");
         var isLocked = false;
         try
         {
@@ -233,6 +245,11 @@ internal sealed class PartStorage : IDisposable
             _partPath = newPath;
             (_partHeader, _writer) = LoadPart(_partPath);
         }
+        catch (Exception ex)
+        {
+            activity?.SetError(ex);
+            throw;
+        }
         finally
         {
             if (isLocked)
@@ -242,7 +259,8 @@ internal sealed class PartStorage : IDisposable
 
     private async Task DeleteInternal(CancellationToken token)
     {
-        var activity = Activity.Current;
+        using var activity = StorageTelemetry.Activity.StartActivity()
+            ?.WithDisplayName($"Удаление раздела {_partPath}");
         var isLocked = false;
 
         try
@@ -251,8 +269,12 @@ internal sealed class PartStorage : IDisposable
             isLocked = true;
             Close();
             File.Delete(_partPath);
-            activity?.AddEvent($"Раздел {_partPath} удален.");
             _partHeader = _partHeader with { PartType = PartTypeEnum.Deleted };
+        }
+        catch (Exception ex)
+        {
+            activity?.SetError(ex);
+            throw;
         }
         finally
         {

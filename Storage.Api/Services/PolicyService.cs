@@ -3,6 +3,7 @@ using Storage.Api.DataAccess;
 using Storage.Api.Lss;
 using Storage.Api.Lss.Model;
 using Storage.Api.Options;
+using Storage.Api.Internal;
 
 namespace Storage.Api.Services;
 
@@ -18,13 +19,18 @@ internal class PolicyService(
     {
         while (!token.IsCancellationRequested)
         {
+            using var activity = StorageTelemetry.Activity.StartActivity()
+                ?.WithDisplayName($"Применение политики хранения к узлу {_options.NodeName}");
+
             try
             {
                 await ApplyPolicyAsync(token);
+                activity?.AddEvent($"Политика применена к узлу {_options.NodeName}");
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Error applying policy: {Message}", ex.Message);
+                activity?.SetError(ex);
+                logger.LogError(ex, "Ошибка применения политики к узлу {NodeName}: {Message}", _options.NodeName, ex.Message);
             }
             finally
             {

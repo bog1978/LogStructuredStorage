@@ -38,6 +38,9 @@ internal class DownloadFileHandler : IEndpointHandler
         HttpContext context,
         CancellationToken token)
     {
+        using var activity = StorageTelemetry.Activity.StartActivity()
+            ?.WithDisplayName($"Скачивание файла по ключу {fileKey}");
+
         var keyParts = fileKey.Split(':');
         var nodeName = keyParts[0];
         var bucketName = keyParts[1];
@@ -51,6 +54,7 @@ internal class DownloadFileHandler : IEndpointHandler
         var bucketStorage = nodeStorage.GetOrCreateBucket(bucketName);
         await bucketStorage.Read(location, SetupHeaders, context.Response.Body, token);
 
+        activity?.AddEvent($"Файл по ключу {fileKey} успешно отправлен");
         return;
         
         void SetupHeaders(FileHeader fileHeader)
