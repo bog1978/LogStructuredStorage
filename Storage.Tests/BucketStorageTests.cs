@@ -39,7 +39,7 @@ public class BucketStorageTests
     {
         var locationList = new List<(DataLocation Location, string Hash)>();
 
-        using (var ps0 = new BucketStorage(HotPath, ColdPath, BucketName, 100))
+        using (var ps0 = new BucketStorage("test_node", HotPath, ColdPath, BucketName, 100))
         {
             for (var i = 0; i < 100; i++)
             {
@@ -54,7 +54,7 @@ public class BucketStorageTests
             }
         }
 
-        using (var ps2 = new BucketStorage(HotPath, ColdPath, BucketName, 100))
+        using (var ps2 = new BucketStorage("test_node", HotPath, ColdPath, BucketName, 100))
         {
             foreach (var (location, wHash) in locationList)
             {

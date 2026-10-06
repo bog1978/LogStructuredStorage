@@ -12,6 +12,7 @@ namespace Storage.Api.Lss;
 internal sealed class BucketStorage : IBucketStorage
 {
     private const int WriteRetryCount = 10;
+    private readonly string _nodeName;
     private readonly string _bucketName;
     private readonly int _partSizeMb;
     private readonly string _bucketHotDir;
@@ -20,8 +21,9 @@ internal sealed class BucketStorage : IBucketStorage
     private volatile PartStorage? _partStorage;
     private readonly Lock _lock = new();
 
-    public BucketStorage(string hotDir, string coldDir, string bucketName, int partSizeMb)
+    public BucketStorage(string nodeName, string hotDir, string coldDir, string bucketName, int partSizeMb)
     {
+        _nodeName = nodeName;
         _bucketName = bucketName;
         _partSizeMb = partSizeMb;
         _bucketHotDir = Path.Combine(hotDir, bucketName);
@@ -38,45 +40,78 @@ internal sealed class BucketStorage : IBucketStorage
         using var activity = StorageTelemetry.Activity.StartActivity()
             ?.WithDisplayName($"Запись файла {fileHeader.FileName} в корзину {_bucketName}");
 
-        // Запоминаем раздел, с которым работаем.
-        PartStorage hotPart;
-        lock (_lock)
+        try
         {
-            ObjectDisposedException.ThrowIf(_partStorage == null, this);
-            hotPart = _partStorage;
-        }
-
-        // Если другой поток успел создать новый горячий раздел и заполнить его,
-        // то нужно будет делать повторные попытки. Но это не штатная ситуация,
-        // т.к. файлы должны быть маленькие, а разделы - большие. Даже если идет
-        // запись в несколько потоков, то они все равно не успеют заполнить раздел
-        // между созданием нового горячего раздела и записью в него.
-        // Этот цикл - перестраховка на всякий случай.
-        for (var i = 0; i < WriteRetryCount; i++)
-        {
-            var offset = await hotPart.TryWrite(fileHeader, data, token);
-            if (offset >= 0)
-                return new(_bucketName, hotPart.PartNumber, offset);
-            
+            // Запоминаем раздел, с которым работаем.
+            PartStorage hotPart;
             lock (_lock)
-                if(ReferenceEquals(_partStorage, hotPart))
+            {
+                ObjectDisposedException.ThrowIf(_partStorage == null, this);
+                hotPart = _partStorage;
+            }
+
+            // Если другой поток успел создать новый горячий раздел и заполнить его,
+            // то нужно будет делать повторные попытки. Но это не штатная ситуация,
+            // т.к. файлы должны быть маленькие, а разделы - большие. Даже если идет
+            // запись в несколько потоков, то они все равно не успеют заполнить раздел
+            // между созданием нового горячего раздела и записью в него.
+            // Этот цикл - перестраховка на всякий случай.
+            for (var i = 0; i < WriteRetryCount; i++)
+            {
+                var offset = await hotPart.TryWrite(fileHeader, data, token);
+                if (offset >= 0)
                 {
-                    // Создаем новый горячий раздел. Это нормальная ситуация: начали писать
-                    // в горячий раздел, но он заполнился и создали новый, чтобы продолжить писать.
-                    hotPart = AddActivePart();
-                    _partStorage = hotPart;
+                    StorageTelemetry.OperationCounter.Add(
+                        1,
+                        new("node", _nodeName),
+                        new("bucket", _bucketName),
+                        new("operation", "write"),
+                        new("status", "success"));
+                    StorageTelemetry.FileSizeHistogram.Record(
+                        fileHeader.Length / (1024.0 * 1024.0),
+                        new("node", _nodeName),
+                        new("bucket", _bucketName),
+                        new("operation", "write"));                    
+                    if (activity?.Duration is { } duration)
+                        StorageTelemetry.OperationDurationHistogram.Record(
+                            duration.TotalMilliseconds,
+                            new("node", _nodeName),
+                            new("bucket", _bucketName),
+                            new("operation", "write"));
+                    return new(_bucketName, hotPart.PartNumber, offset);
                 }
-                else
-                {
-                    // В результате гонок другой поток уже мог создать новый горячий раздел.
-                    // Будем писать в тот, который уже есть.
-                    hotPart = _partStorage;
-                }
+
+                lock (_lock)
+                    if (ReferenceEquals(_partStorage, hotPart))
+                    {
+                        // Создаем новый горячий раздел. Это нормальная ситуация: начали писать
+                        // в горячий раздел, но он заполнился и создали новый, чтобы продолжить писать.
+                        hotPart = AddActivePart();
+                        _partStorage = hotPart;
+                    }
+                    else
+                    {
+                        // В результате гонок другой поток уже мог создать новый горячий раздел.
+                        // Будем писать в тот, который уже есть.
+                        hotPart = _partStorage;
+                    }
+            }
+
+            // В этом месте новый горячий раздел создан, но записи в него не было.
+            // Ничего страшного в этом нет, т.к. при следующей записи он все равно создался бы.
+            throw new InvalidOperationException("Не удалось выполнить запись данных");
         }
-        
-        // В этом месте новый горячий раздел создан, но записи в него не было.
-        // Ничего страшного в этом нет, т.к. при следующей записи он все равно создался бы.
-        throw new InvalidOperationException("Не удалось выполнить запись данных");
+        catch (Exception ex)
+        {
+            activity?.SetError(ex);
+            StorageTelemetry.OperationCounter.Add(
+                1,
+                new("node", _nodeName),
+                new("bucket", _bucketName),
+                new("operation", "write"),
+                new("status", "error"));
+            throw;
+        }
     }
 
     public async Task Read(DataLocation location, Action<FileHeader> headerCallback, Stream outStream,
@@ -85,16 +120,53 @@ internal sealed class BucketStorage : IBucketStorage
         using var activity = StorageTelemetry.Activity.StartActivity()
             ?.WithDisplayName($"Чтение файла по смещению {location.Offset} из корзины {_bucketName}");
 
-        lock (_lock)
-            ObjectDisposedException.ThrowIf(_partStorage == null, this);
-
-        if (_partsMap.TryGetValue(location.PartNumber, out var part))
+        try
         {
-            await part.Read(location.Offset, outStream, headerCallback, token);
-            activity?.AddEvent($"Файл по смещению {location.Offset} из корзины {_bucketName} отправлен");
+            lock (_lock)
+                ObjectDisposedException.ThrowIf(_partStorage == null, this);
+
+            if (_partsMap.TryGetValue(location.PartNumber, out var part))
+            {
+                FileHeader? capturedHeader = null;
+                await part.Read(location.Offset, outStream, fh =>
+                {
+                    capturedHeader = fh;
+                    headerCallback(fh);
+                }, token);
+                activity?.AddEvent($"Файл по смещению {location.Offset} из корзины {_bucketName} отправлен");
+                StorageTelemetry.OperationCounter.Add(
+                    1,
+                    new("node", _nodeName),
+                    new("bucket", _bucketName),
+                    new("operation", "read"),
+                    new("status", "success"));
+                if (capturedHeader != null)
+                    StorageTelemetry.FileSizeHistogram.Record(
+                        capturedHeader.Length / (1024.0 * 1024.0),
+                        new("node", _nodeName),
+                        new("bucket", _bucketName),
+                        new("operation", "read"));
+                if (activity?.Duration is { } duration)
+                    StorageTelemetry.OperationDurationHistogram.Record(
+                        duration.TotalMilliseconds,
+                        new("node", _nodeName),
+                        new("bucket", _bucketName),
+                        new("operation", "read"));
+            }
+            else
+                throw new InvalidOperationException($"Раздел {location.PartNumber} не найден");
         }
-        else
-            throw new InvalidOperationException($"Раздел {location.PartNumber} не найден");
+        catch (Exception ex)
+        {
+            activity?.SetError(ex);
+            StorageTelemetry.OperationCounter.Add(
+                1,
+                new("node", _nodeName),
+                new("bucket", _bucketName),
+                new("operation", "read"),
+                new("status", "error"));
+            throw;
+        }
     }
 
     /// <summary>
@@ -141,6 +213,7 @@ internal sealed class BucketStorage : IBucketStorage
             if (partType == PartTypeEnum.Deleted)
                 _partsMap.Remove(part.PartNumber, out var p);
         }
+
         activity?.AddEvent($"Обработано {parts.Count} разделов");
     }
 

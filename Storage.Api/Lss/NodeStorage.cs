@@ -26,6 +26,7 @@ internal sealed class NodeStorage : INodeStorage
 
     public IBucketStorage GetOrCreateBucket(string bucketName) =>
         _bucketMap.GetOrAdd(bucketName, key => new(
+            _options.NodeName,
             _options.HotPath,
             _options.ColdPath,
             key,
@@ -78,6 +79,7 @@ internal sealed class NodeStorage : INodeStorage
         {
             var bucketName = Path.GetFileName(bucketDir);
             var bucketStorage = new BucketStorage(
+                _options.NodeName,
                 _options.HotPath,
                 _options.ColdPath,
                 bucketName,
