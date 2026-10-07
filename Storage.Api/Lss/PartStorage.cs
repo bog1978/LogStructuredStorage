@@ -221,29 +221,72 @@ internal sealed class PartStorage : IDisposable
                 activity?.AddEvent($"Создана директория для холодных разделов: {bucketColdDir}");
             }
 
-            await _lock.UpgradeToWriteLockAsync(token);
-            isLocked = true;
-
-            if (_partHeader.PartType == PartTypeEnum.Cold)
-                throw new InvalidOperationException("Раздел уже холодный");
-
-            // TODO: Копировать сразу с новым заголовком. Тогда можно будет использовать EnterReadLockAsync,
-            // TODO: а перед удалением - UpgradeToWriteLockAsync.
-            _writer?.MakeColdPart(_partHeader);
-
             var newPath = Path.Combine(bucketColdDir, Path.GetFileName(_partPath));
+            var sourcePath = _partPath;
+            var coldHeader = _partHeader with
+            {
+                PartType = PartTypeEnum.Cold,
+                WritePosition = -1
+            };
+            var tempPath = Path.Combine(bucketColdDir, $"{Path.GetFileName(newPath)}.{Guid.NewGuid():N}.tmp");
+            var movedToFinalPath = false;
 
-            await using (var srcStream = new FileStream(_partPath, FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite))
-            await using (var dstStream = new FileStream(newPath, FileMode.Create, FileAccess.ReadWrite, FileShare.ReadWrite))
-                await srcStream.CopyToAsync(dstStream, token);
-            activity?.AddEvent($"Раздел {_partPath} скопирован в холодное хранилище: {newPath}");
+            try
+            {
+                await using (var srcStream = new FileStream(sourcePath, FileMode.Open, FileAccess.Read, FileShare.Read))
+                await using (var dstStream = new FileStream(tempPath, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None))
+                {
+                    using (var writer = new BinaryWriter(dstStream, Encoding.UTF8, leaveOpen: true))
+                        writer.WritePartHeader(coldHeader);
 
-            Close();
-            File.Delete(_partPath);
-            activity?.AddEvent($"Раздел {_partPath} удален из горячего хранилища и перенесен в холодное: {newPath}");
+                    srcStream.Position = HeaderExt.HeaderSize;
+                    await CopyExactlyAsync(
+                        srcStream,
+                        dstStream,
+                        srcStream.Length - HeaderExt.HeaderSize,
+                        token);
+                    await dstStream.FlushAsync(token);
+                    dstStream.Flush(flushToDisk: true);
+                }
 
-            _partPath = newPath;
-            (_partHeader, _writer) = LoadPart(_partPath);
+                await _lock.UpgradeToWriteLockAsync(token);
+                isLocked = true;
+
+                if (_partHeader.PartType != PartTypeEnum.Warm || _partPath != sourcePath)
+                {
+                    File.Delete(tempPath);
+                    activity?.AddEvent($"Перенос раздела отменен: состояние или путь раздела изменились");
+                    return;
+                }
+
+                Close();
+                File.Move(tempPath, newPath);
+                movedToFinalPath = true;
+                File.Delete(sourcePath);
+
+                _partPath = newPath;
+                _partHeader = coldHeader;
+                _writer = null;
+            }
+            catch
+            {
+                if (File.Exists(tempPath))
+                    File.Delete(tempPath);
+                if (movedToFinalPath && File.Exists(sourcePath))
+                {
+                    try
+                    {
+                        File.Delete(newPath);
+                    }
+                    catch
+                    {
+                        // Preserve the original exception; startup can report any leftover duplicate.
+                    }
+                }
+                throw;
+            }
+
+            activity?.AddEvent($"Раздел {_partPath} перенесен в холодное хранилище: {newPath}");
         }
         catch (Exception ex)
         {
@@ -287,15 +330,40 @@ internal sealed class PartStorage : IDisposable
     {
         var stream = new FileStream(partPath, FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite);
         var partHeader = stream.ReadPartHeader();
-        if (partHeader.WritePosition <= 0)
+        if (partHeader.PartType != PartTypeEnum.Hot)
         {
             stream.Dispose();
             return (partHeader, null);
         }
 
+        if (partHeader.WritePosition < HeaderExt.HeaderSize || partHeader.WritePosition > stream.Length)
+        {
+            stream.Dispose();
+            throw new InvalidDataException($"Некорректная позиция записи в разделе {partPath}: {partHeader.WritePosition}");
+        }
+
         var writer = new BinaryWriter(stream);
         stream.Seek(partHeader.WritePosition, SeekOrigin.Begin);
         return (partHeader, writer);
+    }
+
+    private static async Task CopyExactlyAsync(
+        Stream source,
+        Stream destination,
+        long bytesToCopy,
+        CancellationToken token)
+    {
+        var buffer = new byte[81920];
+        while (bytesToCopy > 0)
+        {
+            var requested = (int)Math.Min(buffer.Length, bytesToCopy);
+            var read = await source.ReadAsync(buffer.AsMemory(0, requested), token);
+            if (read == 0)
+                throw new EndOfStreamException("Раздел закончился раньше ожидаемой позиции данных.");
+
+            await destination.WriteAsync(buffer.AsMemory(0, read), token);
+            bytesToCopy -= read;
+        }
     }
 
     public static PartStorage Create(string partPath)

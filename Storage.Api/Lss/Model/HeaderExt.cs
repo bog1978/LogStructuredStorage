@@ -4,7 +4,7 @@ namespace Storage.Api.Lss.Model;
 
 internal static class HeaderExt
 {
-    private static long Size => sizeof(int) + sizeof(long) * 3 + sizeof(byte);
+    internal static long HeaderSize => sizeof(int) + sizeof(long) * 3 + sizeof(byte);
 
     extension(Stream stream)
     {
@@ -20,7 +20,7 @@ internal static class HeaderExt
         public PartHeader CreatePartHeader(PartHeader header)
         {
             writer.BaseStream.Position = 0;
-            return writer.WritePartHeader(header with { WritePosition = Size });
+            return writer.WritePartHeader(header with { WritePosition = HeaderSize });
         }
 
         public PartHeader MakeWarmPart(PartHeader header) => writer.UpdatePartHeader(
@@ -29,7 +29,7 @@ internal static class HeaderExt
                 PartType = PartTypeEnum.Warm,
                 WritePosition = -1
             });
-
+        
         public PartHeader MakeColdPart(PartHeader header) => writer.UpdatePartHeader(
             header with
             {
@@ -52,7 +52,7 @@ internal static class HeaderExt
             return header;
         }
 
-        private PartHeader WritePartHeader(PartHeader header)
+        public PartHeader WritePartHeader(PartHeader header)
         {
             var pt = (byte)header.PartType;
             writer.Write(header.PartNumber);
