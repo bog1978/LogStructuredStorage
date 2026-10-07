@@ -37,10 +37,11 @@ internal static class HeaderExt
                 WritePosition = -1
             });
         
-        public PartHeader UpdateWriteOffset(PartHeader header) => writer.UpdatePartHeader(
+        public PartHeader UpdateWriteOffset(PartHeader header, DateTimeOffset fileCreatedAt) => writer.UpdatePartHeader(
             header with
             {
-                WritePosition = writer.BaseStream.Position
+                WritePosition = writer.BaseStream.Position,
+                MaxTime = fileCreatedAt > header.MaxTime ? fileCreatedAt : header.MaxTime
             });
 
         private PartHeader UpdatePartHeader(PartHeader header)

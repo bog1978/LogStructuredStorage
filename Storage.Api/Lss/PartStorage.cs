@@ -66,7 +66,7 @@ internal sealed class PartStorage : IDisposable
                 _writer.Write(headerBytes);
                 await inStream.CopyToAsync(_writer.BaseStream, token);
                 _writer.Flush();
-                _partHeader = _writer.UpdateWriteOffset(_partHeader);
+                _partHeader = _writer.UpdateWriteOffset(_partHeader, fileHeader.CreatedAt);
                 activity?.AddEvent($"Запись файла {fileHeader.FileName} в раздел {_partPath} успешно завершена. Offset: {offset}");
                 return offset;
             }
