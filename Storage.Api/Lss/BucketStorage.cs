@@ -30,7 +30,8 @@ internal sealed class BucketStorage : IBucketStorage
         _bucketColdDir = Path.Combine(coldDir, bucketName);
         LoadParts(_bucketHotDir);
         LoadParts(_bucketColdDir);
-        _partStorage = AddActivePart();
+        if (_partStorage == null)
+            _partStorage = AddActivePart(GetNextPartNumber());
     }
 
     public string Name => _bucketName;
@@ -71,7 +72,7 @@ internal sealed class BucketStorage : IBucketStorage
                         fileHeader.Length / (1024.0 * 1024.0),
                         new("node", _nodeName),
                         new("bucket", _bucketName),
-                        new("operation", "write"));                    
+                        new("operation", "write"));
                     if (activity?.Duration is { } duration)
                         StorageTelemetry.OperationDurationHistogram.Record(
                             duration.TotalMilliseconds,
@@ -86,7 +87,7 @@ internal sealed class BucketStorage : IBucketStorage
                     {
                         // Создаем новый горячий раздел. Это нормальная ситуация: начали писать
                         // в горячий раздел, но он заполнился и создали новый, чтобы продолжить писать.
-                        hotPart = AddActivePart();
+                        hotPart = AddActivePart(GetNextPartNumber());
                         _partStorage = hotPart;
                     }
                     else
@@ -183,8 +184,9 @@ internal sealed class BucketStorage : IBucketStorage
         {
             ObjectDisposedException.ThrowIf(_partStorage == null, this);
             parts = _partsMap.Values.ToList();
+            var nextPartNumber = GetNextPartNumber();
             _partsMap.Clear();
-            _partStorage = AddActivePart();
+            _partStorage = AddActivePart(nextPartNumber);
         }
 
         foreach (var part in parts)
@@ -277,14 +279,16 @@ internal sealed class BucketStorage : IBucketStorage
         }
     }
 
-    private PartStorage AddActivePart()
+    private PartStorage AddActivePart(int nextPartNumber)
     {
-        var nextPartNumber = _partsMap.Keys.Count > 0
-            ? _partsMap.Keys.Max() + 1
-            : 0;
         var partStorage = PartStorage.Create(_bucketHotDir, nextPartNumber, _partSizeMb);
         if (!_partsMap.TryAdd(nextPartNumber, partStorage))
             throw new InvalidOperationException($"Дубликат номера раздела {nextPartNumber}");
         return partStorage;
     }
+
+    private int GetNextPartNumber() =>
+        _partsMap.Keys.Count > 0
+            ? _partsMap.Keys.Max() + 1
+            : 0;
 }
