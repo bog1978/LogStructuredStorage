@@ -6,7 +6,6 @@ using OpenTelemetry.Metrics;
 using OpenTelemetry.Trace;
 using Storage.Api.Internal;
 using Storage.Api.Options;
-using Storage.Cluster;
 
 namespace Storage.Api;
 
@@ -65,6 +64,7 @@ internal sealed class Program
                     .AllowAnyOrigin()
                     .AllowAnyHeader()
                     .AllowAnyMethod()))
+            .AddValidation()
             .AddHealthChecks();
 
         // Лимит для multipart/form-data из настройки
