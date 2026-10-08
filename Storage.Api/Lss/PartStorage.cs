@@ -8,9 +8,6 @@ namespace Storage.Api.Lss;
 
 internal sealed class PartStorage : IDisposable
 {
-    private const int MaxTextFieldBytes = 64 * 1024;
-    private static readonly Encoding StrictUtf8 = new UTF8Encoding(false, true);
-
     private readonly AsyncReaderWriterLock _lock = new();
     private readonly List<PartIndexEntry> _indexEntries;
     private BinaryWriter? _writer;
@@ -18,7 +15,7 @@ internal sealed class PartStorage : IDisposable
     private string _partPath;
     private bool _disposed;
 
-    private PartStorage(string partPath, PartHeader partHeader, List<PartIndexEntry> indexEntries, BinaryWriter? writer)
+    internal PartStorage(string partPath, PartHeader partHeader, List<PartIndexEntry> indexEntries, BinaryWriter? writer)
     {
         _partPath = partPath;
         _partHeader = partHeader;
@@ -56,15 +53,12 @@ internal sealed class PartStorage : IDisposable
             if (inStream.CanSeek && inStream.Length - inStream.Position != fileHeader.Length)
                 throw new InvalidOperationException("Несоответствие длины файла");
 
-            var fileNameBytes = StrictUtf8.GetBytes(fileHeader.FileName);
-            var contentTypeBytes = StrictUtf8.GetBytes(fileHeader.ContentType);
-            if (fileNameBytes.Length > MaxTextFieldBytes || contentTypeBytes.Length > MaxTextFieldBytes)
-                throw new InvalidDataException($"Метаданные файла превышают {MaxTextFieldBytes} байт.");
-
-            var recordLength = checked(
-                sizeof(int) + (long)fileNameBytes.Length +
-                sizeof(int) + (long)contentTypeBytes.Length +
-                fileHeader.Length);
+            var dataEntry = new PartDataEntry(fileHeader.FileName, fileHeader.ContentType);
+            using var metadataHeader = new MemoryStream();
+            using (var metadataWriter = new BinaryWriter(metadataHeader, Encoding.UTF8, leaveOpen: true))
+                metadataWriter.WriteDataEntry(dataEntry);
+            metadataHeader.Position = 0;
+            var recordLength = checked(metadataHeader.Length + fileHeader.Length);
             var recordOffset = _partHeader.WritePosition;
             var stream = _writer.BaseStream;
 
@@ -83,11 +77,8 @@ internal sealed class PartStorage : IDisposable
             try
             {
                 stream.Position = recordOffset;
-                _writer.Write(fileNameBytes.Length);
-                _writer.Write(fileNameBytes);
-                _writer.Write(contentTypeBytes.Length);
-                _writer.Write(contentTypeBytes);
-                await CopyExactlyAsync(inStream, stream, fileHeader.Length, token);
+                await metadataHeader.CopyToAsync(stream, token);
+                await inStream.CopyExactlyAsync(stream, fileHeader.Length, token);
                 _writer.Flush();
 
                 var indexEntry = new PartIndexEntry(recordOffset, recordLength, fileHeader.Length, fileHeader.CreatedAt);
@@ -156,15 +147,14 @@ internal sealed class PartStorage : IDisposable
             }
 
             stream.Position = entry.RecordOffset;
-            using var reader = new BinaryReader(stream, StrictUtf8, leaveOpen: true);
-            var fileName = ReadTextField(reader, recordEnd);
-            var contentType = ReadTextField(reader, recordEnd);
+            using var reader = new BinaryReader(stream);
+            var dataEntry = reader.ReadDataEntry();
             if (stream.Position + entry.FileLength != recordEnd)
                 throw new InvalidDataException($"Размер записи {fileIndex} не соответствует индексной записи.");
 
-            var fileHeader = new FileHeader(fileName, contentType, entry.FileLength, entry.CreatedAt);
+            var fileHeader = new FileHeader(dataEntry.FileName, dataEntry.ContentType, entry.FileLength, entry.CreatedAt);
             headersCallback(fileHeader);
-            await CopyExactlyAsync(stream, outStream, entry.FileLength, token);
+            await stream.CopyExactlyAsync(outStream, entry.FileLength, token);
             activity?.AddEvent($"Файл {fileHeader.FileName} прочитан из раздела {_partPath}. Размер: {fileHeader.Length} байт");
         }
         catch (Exception ex)
@@ -300,7 +290,7 @@ internal sealed class PartStorage : IDisposable
                         writer.WritePartHeader(coldHeader);
 
                     srcStream.Position = HeaderExt.HeaderSize;
-                    await CopyExactlyAsync(srcStream, dstStream, srcStream.Length - HeaderExt.HeaderSize, token);
+                    await srcStream.CopyExactlyAsync(dstStream, srcStream.Length - HeaderExt.HeaderSize, token);
                     await dstStream.FlushAsync(token);
                     dstStream.Flush(flushToDisk: true);
                 }
@@ -382,97 +372,9 @@ internal sealed class PartStorage : IDisposable
         }
     }
 
-    private static string ReadTextField(BinaryReader reader, long recordEnd)
-    {
-        if (recordEnd - reader.BaseStream.Position < sizeof(int))
-            throw new InvalidDataException("Запись обрывается внутри длины текстового поля.");
-
-        var byteLength = reader.ReadInt32();
-        if (byteLength < 0 || byteLength > MaxTextFieldBytes || byteLength > recordEnd - reader.BaseStream.Position)
-            throw new InvalidDataException($"Некорректная длина текстового поля: {byteLength}.");
-
-        var bytes = reader.ReadBytes(byteLength);
-        if (bytes.Length != byteLength)
-            throw new EndOfStreamException("Запись обрывается внутри текстового поля.");
-        return StrictUtf8.GetString(bytes);
-    }
-
-    private static async Task CopyExactlyAsync(Stream source, Stream destination, long bytesToCopy, CancellationToken token)
-    {
-        var buffer = new byte[81920];
-        while (bytesToCopy > 0)
-        {
-            var requested = (int)Math.Min(buffer.Length, bytesToCopy);
-            var read = await source.ReadAsync(buffer.AsMemory(0, requested), token);
-            if (read == 0)
-                throw new EndOfStreamException("Поток закончился раньше ожидаемой длины записи.");
-
-            await destination.WriteAsync(buffer.AsMemory(0, read), token);
-            bytesToCopy -= read;
-        }
-    }
-
-    private static (PartHeader Header, List<PartIndexEntry> IndexEntries, BinaryWriter? Writer) LoadPart(string partPath)
-    {
-        var stream = new FileStream(partPath, FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite);
-        try
-        {
-            if (stream.Length < HeaderExt.HeaderZoneSize)
-                throw new InvalidDataException($"Файл раздела короче служебной зоны: {partPath}");
-
-            var partHeader = stream.ReadPartHeader();
-            var indexEntries = new List<PartIndexEntry>(partHeader.CommittedFileCount);
-            stream.Position = HeaderExt.HeaderSize;
-            using (var reader = new BinaryReader(stream, Encoding.UTF8, leaveOpen: true))
-            {
-                for (var i = 0; i < partHeader.CommittedFileCount; i++)
-                    indexEntries.Add(reader.ReadIndexEntry());
-            }
-
-            var expectedOffset = (long)HeaderExt.HeaderZoneSize;
-            foreach (var entry in indexEntries)
-            {
-                if (entry.RecordOffset != expectedOffset ||
-                    entry.RecordLength < sizeof(int) * 2L + entry.FileLength ||
-                    entry.FileLength < 0 ||
-                    entry.RecordLength > stream.Length - entry.RecordOffset)
-                {
-                    throw new InvalidDataException($"Некорректная индексная запись в разделе {partPath}.");
-                }
-
-                expectedOffset = checked(entry.RecordOffset + entry.RecordLength);
-            }
-
-            if (partHeader.PartType == PartTypeEnum.Hot)
-            {
-                if (partHeader.WritePosition != expectedOffset ||
-                    partHeader.WritePosition < HeaderExt.HeaderZoneSize ||
-                    partHeader.WritePosition > stream.Length)
-                {
-                    throw new InvalidDataException($"Некорректная позиция записи в разделе {partPath}: {partHeader.WritePosition}");
-                }
-
-                var writer = new BinaryWriter(stream, Encoding.UTF8, leaveOpen: false);
-                stream.Position = partHeader.WritePosition;
-                return (partHeader, indexEntries, writer);
-            }
-
-            if (partHeader.WritePosition != -1)
-                throw new InvalidDataException($"У неактивного раздела указан WritePosition: {partHeader.WritePosition}");
-
-            stream.Dispose();
-            return (partHeader, indexEntries, null);
-        }
-        catch
-        {
-            stream.Dispose();
-            throw;
-        }
-    }
-
     public static PartStorage Create(string partPath)
     {
-        var (partHeader, indexEntries, writer) = LoadPart(partPath);
+        var (partHeader, indexEntries, writer) = PartFileLoader.Load(partPath);
         return new PartStorage(partPath, partHeader, indexEntries, writer);
     }
 
@@ -483,7 +385,7 @@ internal sealed class PartStorage : IDisposable
         var partPath = Path.Combine(rootPath, $"{partNumber:0000000000}.lss");
         var stream = new FileStream(partPath, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.ReadWrite);
         stream.SetLength(partSizeMb * 1024L * 1024L);
-        var writer = new BinaryWriter(stream, Encoding.UTF8, leaveOpen: false);
+        var writer = new BinaryWriter(stream);
         var now = DateTimeOffset.UtcNow;
         var partHeader = writer.CreatePartHeader(new PartHeader(
             partNumber,

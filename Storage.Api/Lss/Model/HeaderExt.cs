@@ -6,6 +6,7 @@ internal static class HeaderExt
 {
     private static readonly byte[] FormatMagic = "LSS2"u8.ToArray();
     private const byte FormatVersion = 2;
+    private const int MaxTextFieldCharacters = 255;
 
     internal const int HeaderZoneSize = 100 * 1024;
     internal const int HeaderSize = sizeof(int) + sizeof(byte) + sizeof(int) + sizeof(byte) +
@@ -24,6 +25,14 @@ internal static class HeaderExt
 
     extension(BinaryWriter writer)
     {
+        public void WriteDataEntry(PartDataEntry entry)
+        {
+            ValidateTextLength(entry.FileName);
+            ValidateTextLength(entry.ContentType);
+            writer.Write(entry.FileName);
+            writer.Write(entry.ContentType);
+        }
+
         public PartHeader CreatePartHeader(PartHeader header) => writer.UpdatePartHeader(
             header with { WritePosition = HeaderZoneSize });
 
@@ -95,6 +104,8 @@ internal static class HeaderExt
 
     extension(BinaryReader reader)
     {
+        public PartDataEntry ReadDataEntry() => new(reader.ReadString(), reader.ReadString());
+
         public PartHeader ReadPartHeader()
         {
             if (reader.BaseStream.Position != 0)
@@ -139,5 +150,11 @@ internal static class HeaderExt
             var createdAt = DateTimeOffset.FromUnixTimeMilliseconds(reader.ReadInt64());
             return new PartIndexEntry(recordOffset, recordLength, fileLength, createdAt);
         }
+    }
+
+    private static void ValidateTextLength(string value)
+    {
+        if (value.Length > MaxTextFieldCharacters)
+            throw new InvalidDataException($"Текстовое поле превышает допустимый размер {MaxTextFieldCharacters} символов.");
     }
 }
