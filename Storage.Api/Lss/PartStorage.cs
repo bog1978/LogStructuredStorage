@@ -15,7 +15,7 @@ internal sealed class PartStorage : IDisposable
     private string _partPath;
     private bool _disposed;
 
-    internal PartStorage(string partPath, PartHeader partHeader, List<PartIndexEntry> indexEntries, BinaryWriter? writer)
+    private PartStorage(string partPath, PartHeader partHeader, List<PartIndexEntry> indexEntries, BinaryWriter? writer)
     {
         _partPath = partPath;
         _partHeader = partHeader;
@@ -30,7 +30,7 @@ internal sealed class PartStorage : IDisposable
 
     internal string PartPath => _partPath;
 
-    public async Task<long> TryWrite(FileHeader fileHeader, Stream inStream, CancellationToken token)
+    public async Task<int> TryWrite(FileHeader fileHeader, Stream inStream, CancellationToken token)
     {
         using var activity = StorageTelemetry.Activity.StartActivity()
             ?.WithDisplayName($"Запись файла {fileHeader.FileName} в раздел {_partPath}");
@@ -81,12 +81,12 @@ internal sealed class PartStorage : IDisposable
                 await inStream.CopyExactlyAsync(stream, fileHeader.Length, token);
                 _writer.Flush();
 
-                var indexEntry = new PartIndexEntry(recordOffset, recordLength, fileHeader.Length, fileHeader.CreatedAt);
+                var indexEntry = new PartIndexEntry(recordOffset, fileHeader.Length, fileHeader.CreatedAt);
                 stream.Position = HeaderExt.HeaderSize + (long)fileIndex * HeaderExt.IndexEntrySize;
                 _writer.WriteIndexEntry(indexEntry);
                 _writer.Flush();
 
-                _partHeader = _writer.UpdateWritePosition(_partHeader, recordEnd, fileHeader.CreatedAt);
+                _partHeader = _writer.UpdateWritePosition(_partHeader, checked((int)recordEnd), fileHeader.CreatedAt);
                 _indexEntries.Add(indexEntry);
                 stream.Position = recordEnd;
 
@@ -112,14 +112,14 @@ internal sealed class PartStorage : IDisposable
         }
     }
 
-    public Task Read(long fileIndex, Stream outStream, Action<FileHeader> headersCallback, CancellationToken token)
+    public Task Read(int fileIndex, Stream outStream, Action<FileHeader> headersCallback, CancellationToken token)
     {
         var bucketName = Path.GetFileName(Path.GetDirectoryName(_partPath)) ?? string.Empty;
         return Read(fileIndex, bucketName, outStream, headersCallback, token);
     }
 
     public async Task Read(
-        long fileIndex,
+        int fileIndex,
         string bucketName,
         Stream outStream,
         Action<FileHeader> headersCallback,
@@ -136,12 +136,11 @@ internal sealed class PartStorage : IDisposable
             if (fileIndex < 0 || fileIndex >= _indexEntries.Count)
                 throw new BucketFileNotFoundException(bucketName, $"индекс {fileIndex} в разделе {PartNumber}");
 
-            var entry = _indexEntries[(int)fileIndex];
-            var recordEnd = checked(entry.RecordOffset + entry.RecordLength);
+            var entry = _indexEntries[fileIndex];
             await using var stream = new FileStream(_partPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
             if (entry.RecordOffset < HeaderExt.HeaderZoneSize ||
-                entry.RecordLength < sizeof(int) * 2L + entry.FileLength ||
-                entry.FileLength < 0 || recordEnd > stream.Length)
+                entry.RecordOffset >= stream.Length ||
+                entry.FileLength < 0)
             {
                 throw new InvalidDataException($"Некорректная индексная запись {fileIndex} в разделе {_partPath}.");
             }
@@ -149,9 +148,6 @@ internal sealed class PartStorage : IDisposable
             stream.Position = entry.RecordOffset;
             using var reader = new BinaryReader(stream);
             var dataEntry = reader.ReadDataEntry();
-            if (stream.Position + entry.FileLength != recordEnd)
-                throw new InvalidDataException($"Размер записи {fileIndex} не соответствует индексной записи.");
-
             var fileHeader = new FileHeader(dataEntry.FileName, dataEntry.ContentType, entry.FileLength, entry.CreatedAt);
             headersCallback(fileHeader);
             await stream.CopyExactlyAsync(outStream, entry.FileLength, token);
@@ -388,12 +384,14 @@ internal sealed class PartStorage : IDisposable
         var writer = new BinaryWriter(stream);
         var now = DateTimeOffset.UtcNow;
         var partHeader = writer.CreatePartHeader(new PartHeader(
+            HeaderExt.FormatMagic,
+            HeaderExt.FormatVersion,
             partNumber,
-            HeaderExt.HeaderZoneSize,
             PartTypeEnum.Hot,
             now,
             now,
             now,
+            HeaderExt.HeaderZoneSize,
             0));
         stream.Position = HeaderExt.HeaderZoneSize;
         return new PartStorage(partPath, partHeader, [], writer);

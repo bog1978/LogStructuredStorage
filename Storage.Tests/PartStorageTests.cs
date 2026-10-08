@@ -30,7 +30,7 @@ public class PartStorageTests
     public async Task GenericTest()
     {
         var rootPath = $"{RootPath}\\test1";
-        var offsetList = new List<(long Len, string Hash)>();
+        var offsetList = new List<(int Len, string Hash)>();
 
         string partPath;
         using (var ps0 = PartStorage.Create(rootPath, 0, 100))

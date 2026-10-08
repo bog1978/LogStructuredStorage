@@ -3,4 +3,4 @@
 internal sealed record DataLocation(
     string BucketName,
     int PartNumber,
-    long FileIndex);
+    int FileIndex);

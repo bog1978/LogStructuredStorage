@@ -1,6 +1,4 @@
-﻿using Storage.Api.Lss;
-using Storage.Api.Lss.Model;
-using Model = Storage.Cluster.DataAccess.Model;
+﻿using Model = Storage.Cluster.DataAccess.Model;
 
 namespace Storage.Api.Dto;
 
@@ -22,20 +20,6 @@ internal static class MappingExt
             bucket.TtlCold);
     }
 
-    extension(Model.File file)
-    {
-        public DataLocation Location => new(
-            file.BucketId,
-            file.PartId,
-            file.PartOffset);
-
-        public FileDto ToDto() => new(
-            GetFileKey(file.NodeId, file.BucketId, file.PartId, file.PartOffset),
-            file.FileName,
-            file.FileSize,
-            file.CreatedAt);
-    }
-
-    public static string GetFileKey(string nodeName, string bucketName, int partNumber, long fileIndex) =>
+    public static string GetFileKey(string nodeName, string bucketName, int partNumber, int fileIndex) =>
         $"{nodeName}:{bucketName}:{partNumber}:{fileIndex}";
 }

@@ -44,7 +44,7 @@ internal class DownloadFileHandler : IEndpointHandler
         var keyParts = fileKey.Split(':');
         if (keyParts.Length != 4 ||
             !int.TryParse(keyParts[2], NumberStyles.None, CultureInfo.InvariantCulture, out var partNumber) ||
-            !long.TryParse(keyParts[3], NumberStyles.None, CultureInfo.InvariantCulture, out var fileIndex) ||
+            !int.TryParse(keyParts[3], NumberStyles.None, CultureInfo.InvariantCulture, out var fileIndex) ||
             partNumber < 0 || fileIndex < 0)
         {
             throw new InvalidFileKeyException(fileKey);

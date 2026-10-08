@@ -1,10 +1,12 @@
 ﻿namespace Storage.Api.Lss.Model;
 
 internal record PartHeader(
+    uint Magic,
+    byte Version,
     int PartNumber,
-    long WritePosition,
     PartTypeEnum PartType,
+    DateTimeOffset CreatedAt,
     DateTimeOffset MinTime,
     DateTimeOffset MaxTime,
-    DateTimeOffset CreatedAt,
+    int WritePosition,
     int CommittedFileCount);

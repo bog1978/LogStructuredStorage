@@ -4,14 +4,19 @@ namespace Storage.Api.Lss.Model;
 
 internal static class HeaderExt
 {
-    private static readonly byte[] FormatMagic = "LSS2"u8.ToArray();
-    private const byte FormatVersion = 2;
+    internal const uint FormatMagic = 0x3253534C; // "LSS2" in little-endian byte order.
+    internal const byte FormatVersion = 2;
     private const int MaxTextFieldCharacters = 255;
 
     internal const int HeaderZoneSize = 100 * 1024;
-    internal const int HeaderSize = sizeof(int) + sizeof(byte) + sizeof(int) + sizeof(byte) +
-                                    sizeof(long) * 4 + sizeof(int);
-    internal const int IndexEntrySize = sizeof(long) * 2 + sizeof(int) + sizeof(long);
+    internal const int HeaderSize
+        = sizeof(uint)
+        + sizeof(byte) * 2
+        + sizeof(int) * 3
+        + sizeof(long) * 3;
+    internal const int IndexEntrySize
+        = sizeof(int) * 2 
+        + sizeof(long);
     internal const int MaxIndexEntries = (HeaderZoneSize - HeaderSize) / IndexEntrySize;
 
     extension(Stream stream)
@@ -34,7 +39,12 @@ internal static class HeaderExt
         }
 
         public PartHeader CreatePartHeader(PartHeader header) => writer.UpdatePartHeader(
-            header with { WritePosition = HeaderZoneSize });
+            header with
+            {
+                Magic = FormatMagic,
+                Version = FormatVersion,
+                WritePosition = HeaderZoneSize
+            });
 
         public PartHeader MakeWarmPart(PartHeader header) => writer.UpdatePartHeader(
             header with
@@ -50,7 +60,7 @@ internal static class HeaderExt
                 WritePosition = -1
             });
 
-        public PartHeader UpdateWritePosition(PartHeader header, long writePosition, DateTimeOffset fileCreatedAt)
+        public PartHeader UpdateWritePosition(PartHeader header, int writePosition, DateTimeOffset fileCreatedAt)
         {
             var minTime = header.CommittedFileCount == 0 || fileCreatedAt < header.MinTime
                 ? fileCreatedAt
@@ -71,7 +81,6 @@ internal static class HeaderExt
         public void WriteIndexEntry(PartIndexEntry entry)
         {
             writer.Write(entry.RecordOffset);
-            writer.Write(entry.RecordLength);
             writer.Write(entry.FileLength);
             writer.Write(entry.CreatedAt.ToUnixTimeMilliseconds());
         }
@@ -88,8 +97,8 @@ internal static class HeaderExt
 
         public PartHeader WritePartHeader(PartHeader header)
         {
-            writer.Write(FormatMagic);
-            writer.Write(FormatVersion);
+            writer.Write(header.Magic);
+            writer.Write(header.Version);
             writer.Write(header.PartNumber);
             writer.Write((byte)header.PartType);
             writer.Write(header.CreatedAt.ToUnixTimeMilliseconds());
@@ -111,8 +120,8 @@ internal static class HeaderExt
             if (reader.BaseStream.Position != 0)
                 throw new InvalidOperationException("Invalid position");
 
-            var magic = reader.ReadBytes(FormatMagic.Length);
-            if (!magic.AsSpan().SequenceEqual(FormatMagic))
+            var magic = reader.ReadUInt32();
+            if (magic != FormatMagic)
                 throw new InvalidDataException("Неверная сигнатура файла раздела.");
 
             var version = reader.ReadByte();
@@ -127,28 +136,29 @@ internal static class HeaderExt
             var createdAt = DateTimeOffset.FromUnixTimeMilliseconds(reader.ReadInt64());
             var minTime = DateTimeOffset.FromUnixTimeMilliseconds(reader.ReadInt64());
             var maxTime = DateTimeOffset.FromUnixTimeMilliseconds(reader.ReadInt64());
-            var writePosition = reader.ReadInt64();
+            var writePosition = reader.ReadInt32();
             var committedFileCount = reader.ReadInt32();
             if (committedFileCount < 0 || committedFileCount > MaxIndexEntries)
                 throw new InvalidDataException($"Некорректное число индексных записей: {committedFileCount}.");
 
             return new PartHeader(
+                magic,
+                version,
                 partNumber,
-                writePosition,
                 partType,
+                createdAt,
                 minTime,
                 maxTime,
-                createdAt,
+                writePosition,
                 committedFileCount);
         }
 
         public PartIndexEntry ReadIndexEntry()
         {
-            var recordOffset = reader.ReadInt64();
-            var recordLength = reader.ReadInt64();
+            var recordOffset = reader.ReadInt32();
             var fileLength = reader.ReadInt32();
             var createdAt = DateTimeOffset.FromUnixTimeMilliseconds(reader.ReadInt64());
-            return new PartIndexEntry(recordOffset, recordLength, fileLength, createdAt);
+            return new PartIndexEntry(recordOffset, fileLength, createdAt);
         }
     }
 

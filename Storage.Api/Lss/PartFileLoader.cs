@@ -18,10 +18,10 @@ internal static class PartFileLoader
 
             var partHeader = stream.ReadPartHeader();
             var indexEntries = ReadIndexEntries(stream, partHeader.CommittedFileCount);
-            var expectedWritePosition = ValidateIndex(stream, indexEntries, partPath);
+            ValidateIndex(stream, indexEntries, partPath);
 
             if (partHeader.PartType == PartTypeEnum.Hot)
-                return OpenWriter(stream, partHeader, indexEntries, expectedWritePosition, partPath);
+                return OpenWriter(stream, partHeader, indexEntries, partPath);
 
             if (partHeader.WritePosition != -1)
                 throw new InvalidDataException($"У неактивного раздела указан WritePosition: {partHeader.WritePosition}");
@@ -47,38 +47,41 @@ internal static class PartFileLoader
         return entries;
     }
 
-    private static long ValidateIndex(Stream stream, IReadOnlyList<PartIndexEntry> entries, string partPath)
+    private static void ValidateIndex(Stream stream, IReadOnlyList<PartIndexEntry> entries, string partPath)
     {
-        var expectedOffset = (long)HeaderExt.HeaderZoneSize;
+        long previousOffset = HeaderExt.HeaderZoneSize - 1L;
         foreach (var entry in entries)
         {
-            if (entry.RecordOffset != expectedOffset ||
-                entry.RecordLength < sizeof(int) * 2L + entry.FileLength ||
+            if (entry.RecordOffset <= previousOffset ||
+                entry.RecordOffset >= stream.Length ||
                 entry.FileLength < 0 ||
-                entry.RecordLength > stream.Length - entry.RecordOffset)
+                entry.FileLength > stream.Length - entry.RecordOffset)
             {
                 throw new InvalidDataException($"Некорректная индексная запись в разделе {partPath}.");
             }
 
-            expectedOffset = checked(entry.RecordOffset + entry.RecordLength);
+            previousOffset = entry.RecordOffset;
         }
-
-        return expectedOffset;
     }
 
     private static (PartHeader Header, List<PartIndexEntry> IndexEntries, BinaryWriter? Writer) OpenWriter(
         FileStream stream,
         PartHeader header,
         List<PartIndexEntry> entries,
-        long expectedWritePosition,
         string partPath)
     {
-        if (header.WritePosition != expectedWritePosition ||
-            header.WritePosition < HeaderExt.HeaderZoneSize ||
-            header.WritePosition > stream.Length)
+        var expectedWritePosition = HeaderExt.HeaderZoneSize;
+        if (entries.Count > 0)
         {
-            throw new InvalidDataException($"Некорректная позиция записи в разделе {partPath}: {header.WritePosition}");
+            var lastEntry = entries[^1];
+            stream.Position = lastEntry.RecordOffset;
+            using var reader = new BinaryReader(stream, Encoding.UTF8, leaveOpen: true);
+            reader.ReadDataEntry();
+            expectedWritePosition = checked((int)(stream.Position + lastEntry.FileLength));
         }
+
+        if (header.WritePosition != expectedWritePosition || header.WritePosition > stream.Length)
+            throw new InvalidDataException($"Некорректная позиция записи в разделе {partPath}: {header.WritePosition}");
 
         var writer = new BinaryWriter(stream);
         stream.Position = header.WritePosition;
