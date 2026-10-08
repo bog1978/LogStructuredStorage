@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Storage.Api.DataAccess;
 using Storage.Api.Dto;
 using Storage.Api.Internal;
+using Storage.Api.Validation;
 
 namespace Storage.Api.Handlers.Metadata;
 
@@ -25,6 +26,8 @@ internal sealed class CreateBucketHandler : IEndpointHandler
         [FromServices] IClusterDataAccess clusterDataAccess,
         CancellationToken token)
     {
+        BucketNameValidator.EnsureValid(createDto.BucketId);
+
         var newBucket = await clusterDataAccess.CreateBucketAsync(
             createDto.BucketId,
             createDto.NodeId,

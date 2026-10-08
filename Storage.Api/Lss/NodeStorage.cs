@@ -1,9 +1,10 @@
-﻿using System.Collections.Concurrent;
+using System.Collections.Concurrent;
 using Microsoft.Extensions.Options;
 using Storage.Api.Exceptions;
 using Storage.Api.Internal;
 using Storage.Api.Lss.Model;
 using Storage.Api.Options;
+using Storage.Api.Validation;
 
 namespace Storage.Api.Lss;
 
@@ -25,13 +26,16 @@ internal sealed class NodeStorage : INodeStorage
             ? bucketStorage
             : throw new BucketNotFoundException(bucketName);
 
-    public IBucketStorage GetOrCreateBucket(string bucketName) =>
-        _bucketMap.GetOrAdd(bucketName, key => new(
+    public IBucketStorage GetOrCreateBucket(string bucketName)
+    {
+        BucketNameValidator.EnsureValid(bucketName);
+        return _bucketMap.GetOrAdd(bucketName, key => new(
             _options.NodeName,
             _options.HotPath,
             _options.ColdPath,
             key,
             _options.PartSizeMb));
+    }
 
     public async Task DeleteAll(CancellationToken token)
     {
