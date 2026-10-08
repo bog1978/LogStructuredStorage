@@ -1,4 +1,4 @@
-﻿using EvolveDb.Configuration;
+using EvolveDb.Configuration;
 using EvolveDb.Dialect;
 using Microsoft.Extensions.Options;
 using Npgsql;
@@ -25,8 +25,6 @@ internal sealed class DatabaseInitializer(ILogger<DatabaseInitializer> logger, I
             MetadataTableSchema = "public",
             MetadataTableName = "__evolve__",
             IsEraseDisabled = true,
-            // TODO: Отключить в продакшене
-            MustEraseOnValidationError = true,
             TransactionMode = TransactionKind.CommitAll,
             CommandTimeout = 3600,
             AmbientTransactionTimeout = 3600,

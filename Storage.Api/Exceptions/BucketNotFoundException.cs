@@ -1,4 +1,4 @@
 ﻿namespace Storage.Api.Exceptions;
 
-public sealed class BucketNotFoundException(string bucketId)
-    : ResourceNotFoundException($"Бакет {bucketId} не найден.");
+internal sealed class BucketNotFoundException(string bucketId)
+    : ResourceNotFoundException($"Корзина {bucketId} не найдена.");

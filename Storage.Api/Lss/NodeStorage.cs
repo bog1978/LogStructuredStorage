@@ -1,5 +1,6 @@
 ﻿using System.Collections.Concurrent;
 using Microsoft.Extensions.Options;
+using Storage.Api.Exceptions;
 using Storage.Api.Internal;
 using Storage.Api.Lss.Model;
 using Storage.Api.Options;
@@ -22,7 +23,7 @@ internal sealed class NodeStorage : INodeStorage
     public IBucketStorage GetBucket(string bucketName) =>
         _bucketMap.TryGetValue(bucketName, out var bucketStorage)
             ? bucketStorage
-            : throw new InvalidOperationException("Корзина не найдена");
+            : throw new BucketNotFoundException(bucketName);
 
     public IBucketStorage GetOrCreateBucket(string bucketName) =>
         _bucketMap.GetOrAdd(bucketName, key => new(

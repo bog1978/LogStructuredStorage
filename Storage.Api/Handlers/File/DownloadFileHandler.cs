@@ -51,7 +51,7 @@ internal class DownloadFileHandler : IEndpointHandler
             throw new FeatureNotImplementedException("Переадресация на другую ноду.");
 
         var location = new DataLocation(bucketName, partNumber, partOffset);
-        var bucketStorage = nodeStorage.GetOrCreateBucket(bucketName);
+        var bucketStorage = nodeStorage.GetBucket(bucketName);
         await bucketStorage.Read(location, SetupHeaders, context.Response.Body, token);
 
         activity?.AddEvent($"Файл по ключу {fileKey} успешно отправлен");

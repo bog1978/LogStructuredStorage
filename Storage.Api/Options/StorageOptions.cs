@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 
 namespace Storage.Api.Options;
 
@@ -24,6 +24,6 @@ internal class StorageOptions : IOptionsBase
     [Required]
     public TimeSpan PolicyInterval { get; set; } = TimeSpan.FromSeconds(60);
     
-    [Range(1, 256)]
+    [Range(1, 16)]
     public int BodySizeLimitMb { get; set; }
 }
