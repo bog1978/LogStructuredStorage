@@ -10,6 +10,7 @@ using Storage.Api.Internal;
 using Storage.Api.Lss;
 using Storage.Api.Lss.Model;
 using Storage.Api.Options;
+using Storage.Api.Validation;
 
 namespace Storage.Api.Handlers.File;
 
@@ -38,7 +39,8 @@ internal class UploadFileHandler : IEndpointHandler
         using var activity = StorageTelemetry.Activity.StartActivity()
             ?.WithDisplayName($"Загрузка файла {formFile.FileName} в корзину {bucketId}");
 
-        var bucket = await clusterDataAccess.GetBucketAsync(bucketId, token);
+        var normalizedBucketName = BucketNameValidator.NormalizeAndValidate(bucketId);
+        var bucket = await clusterDataAccess.GetBucketAsync(normalizedBucketName, token);
         if (bucket == null)
             throw new BucketNotFoundException(bucketId);
 
@@ -56,7 +58,7 @@ internal class UploadFileHandler : IEndpointHandler
         await using var data = formFile.OpenReadStream();
         var location = await bucketStorage.Write(fileHeader, data, token);
 
-        var fileKey = MappingExt.GetFileKey(options.Value.NodeName, bucketId, location.PartNumber, location.Offset);
+        var fileKey = MappingExt.GetFileKey(options.Value.NodeName, bucket.BucketName, location.PartNumber, location.Offset);
 
         activity?.AddEvent($"Файл {formFile.FileName} успешно загружен. Ключ: {fileKey}");
 

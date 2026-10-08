@@ -5,6 +5,7 @@ using Storage.Api.DataAccess;
 using Storage.Api.Dto;
 using Storage.Api.Exceptions;
 using Storage.Api.Internal;
+using Storage.Api.Validation;
 
 namespace Storage.Api.Handlers.Metadata;
 
@@ -29,9 +30,10 @@ internal sealed class UpdateBucketHandler : IEndpointHandler
         [FromServices] IClusterDataAccess clusterDataAccess,
         CancellationToken token)
     {
+        var normalizedBucketName = BucketNameValidator.NormalizeAndValidate(bucketId);
         var updated =
             await clusterDataAccess.UpdateBucketAsync(
-                bucketId,
+                normalizedBucketName,
                 patchDto.NodeId,
                 patchDto.TtlHot,
                 patchDto.TtlCold,

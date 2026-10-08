@@ -26,10 +26,10 @@ internal sealed class CreateBucketHandler : IEndpointHandler
         [FromServices] IClusterDataAccess clusterDataAccess,
         CancellationToken token)
     {
-        BucketNameValidator.EnsureValid(createDto.BucketId);
+        var normalizedBucketName = BucketNameValidator.NormalizeAndValidate(createDto.BucketId);
 
         var newBucket = await clusterDataAccess.CreateBucketAsync(
-            createDto.BucketId,
+            normalizedBucketName,
             createDto.NodeId,
             createDto.TtlHot,
             createDto.TtlCold,

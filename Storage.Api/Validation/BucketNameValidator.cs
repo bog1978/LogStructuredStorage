@@ -12,13 +12,16 @@ internal static partial class BucketNameValidator
     [GeneratedRegex(@"\A(?:CON|PRN|AUX|NUL|CONIN\$|CONOUT\$|COM[1-9]|LPT[1-9])\z", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex ReservedDeviceNameRegex();
 
-    public static void EnsureValid(string? bucketName)
+    public static string NormalizeAndValidate(string? bucketName)
     {
-        if (bucketName is null ||
-            !AllowedBucketNameRegex().IsMatch(bucketName) ||
-            ReservedDeviceNameRegex().IsMatch(bucketName))
-        {
+        // Сначала проверяем исходное имя: Unicode-символ после ToLowerInvariant() может стать ASCII-буквой.
+        if (bucketName is null || !AllowedBucketNameRegex().IsMatch(bucketName))
             throw new InvalidBucketNameException(bucketName);
-        }
+
+        var normalizedName = bucketName.ToLowerInvariant();
+        if (ReservedDeviceNameRegex().IsMatch(normalizedName))
+            throw new InvalidBucketNameException(bucketName);
+
+        return normalizedName;
     }
 }

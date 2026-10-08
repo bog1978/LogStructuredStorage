@@ -5,6 +5,7 @@ using Storage.Api.DataAccess;
 using Storage.Api.Dto;
 using Storage.Api.Exceptions;
 using Storage.Api.Internal;
+using Storage.Api.Validation;
 using Storage.Cluster;
 using Storage.Cluster.DataAccess;
 
@@ -29,7 +30,8 @@ internal sealed class GetBucketHandler : IEndpointHandler
         [FromServices] IClusterDataAccess clusterDataAccess,
         CancellationToken token)
     {
-        var bucket = await clusterDataAccess.GetBucketAsync(bucketId, token);
+        var normalizedBucketName = BucketNameValidator.NormalizeAndValidate(bucketId);
+        var bucket = await clusterDataAccess.GetBucketAsync(normalizedBucketName, token);
         return bucket != null
             ? TypedResults.Ok(bucket.ToDto())
             : throw new BucketNotFoundException(bucketId);

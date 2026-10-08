@@ -21,15 +21,18 @@ internal sealed class NodeStorage : INodeStorage
         LoadBuckets();
     }
 
-    public IBucketStorage GetBucket(string bucketName) =>
-        _bucketMap.TryGetValue(bucketName, out var bucketStorage)
+    public IBucketStorage GetBucket(string bucketName)
+    {
+        var normalizedBucketName = BucketNameValidator.NormalizeAndValidate(bucketName);
+        return _bucketMap.TryGetValue(normalizedBucketName, out var bucketStorage)
             ? bucketStorage
             : throw new BucketNotFoundException(bucketName);
+    }
 
     public IBucketStorage GetOrCreateBucket(string bucketName)
     {
-        BucketNameValidator.EnsureValid(bucketName);
-        return _bucketMap.GetOrAdd(bucketName, key => new(
+        var normalizedBucketName = BucketNameValidator.NormalizeAndValidate(bucketName);
+        return _bucketMap.GetOrAdd(normalizedBucketName, key => new(
             _options.NodeName,
             _options.HotPath,
             _options.ColdPath,
