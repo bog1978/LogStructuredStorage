@@ -36,6 +36,6 @@ internal static class MappingExt
             file.CreatedAt);
     }
 
-    public static string GetFileKey(string nodeName, string bucketName, int partId, long offset) => 
-        $"{nodeName}:{bucketName}:{partId}:{offset}";
+    public static string GetFileKey(string nodeName, string bucketName, int partNumber, long fileIndex) =>
+        $"{nodeName}:{bucketName}:{partNumber}:{fileIndex}";
 }

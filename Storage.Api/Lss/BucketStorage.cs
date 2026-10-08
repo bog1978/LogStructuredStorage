@@ -1,4 +1,5 @@
 ﻿using System.Collections.Concurrent;
+using Storage.Api.Exceptions;
 using Storage.Api.Internal;
 using Storage.Api.Lss.Model;
 
@@ -59,8 +60,8 @@ internal sealed class BucketStorage : IBucketStorage
             // Этот цикл - перестраховка на всякий случай.
             for (var i = 0; i < WriteRetryCount; i++)
             {
-                var offset = await hotPart.TryWrite(fileHeader, data, token);
-                if (offset >= 0)
+                var fileIndex = await hotPart.TryWrite(fileHeader, data, token);
+                if (fileIndex >= 0)
                 {
                     StorageTelemetry.OperationCounter.Add(
                         1,
@@ -79,7 +80,7 @@ internal sealed class BucketStorage : IBucketStorage
                             new("node", _nodeName),
                             new("bucket", _bucketName),
                             new("operation", "write"));
-                    return new(_bucketName, hotPart.PartNumber, offset);
+                    return new(_bucketName, hotPart.PartNumber, fileIndex);
                 }
 
                 lock (_lock)
@@ -119,7 +120,7 @@ internal sealed class BucketStorage : IBucketStorage
         CancellationToken token)
     {
         using var activity = StorageTelemetry.Activity.StartActivity()
-            ?.WithDisplayName($"Чтение файла по смещению {location.Offset} из корзины {_bucketName}");
+            ?.WithDisplayName($"Чтение файла с индексом {location.FileIndex} из корзины {_bucketName}");
 
         try
         {
@@ -129,12 +130,12 @@ internal sealed class BucketStorage : IBucketStorage
             if (_partsMap.TryGetValue(location.PartNumber, out var part))
             {
                 FileHeader? capturedHeader = null;
-                await part.Read(location.Offset, outStream, fh =>
+                await part.Read(location.FileIndex, _bucketName, outStream, fh =>
                 {
                     capturedHeader = fh;
                     headerCallback(fh);
                 }, token);
-                activity?.AddEvent($"Файл по смещению {location.Offset} из корзины {_bucketName} отправлен");
+                activity?.AddEvent($"Файл с индексом {location.FileIndex} из корзины {_bucketName} отправлен");
                 StorageTelemetry.OperationCounter.Add(
                     1,
                     new("node", _nodeName),
@@ -155,7 +156,7 @@ internal sealed class BucketStorage : IBucketStorage
                         new("operation", "read"));
             }
             else
-                throw new InvalidOperationException($"Раздел {location.PartNumber} не найден");
+                throw new BucketFileNotFoundException(_bucketName, $"раздел {location.PartNumber}");
         }
         catch (Exception ex)
         {

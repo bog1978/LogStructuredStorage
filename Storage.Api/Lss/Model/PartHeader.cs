@@ -5,4 +5,6 @@ internal record PartHeader(
     long WritePosition,
     PartTypeEnum PartType,
     DateTimeOffset MinTime,
-    DateTimeOffset MaxTime);
+    DateTimeOffset MaxTime,
+    DateTimeOffset CreatedAt,
+    int CommittedFileCount);

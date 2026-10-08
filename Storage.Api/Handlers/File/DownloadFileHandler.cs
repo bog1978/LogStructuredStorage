@@ -42,15 +42,21 @@ internal class DownloadFileHandler : IEndpointHandler
             ?.WithDisplayName($"Скачивание файла по ключу {fileKey}");
 
         var keyParts = fileKey.Split(':');
+        if (keyParts.Length != 4 ||
+            !int.TryParse(keyParts[2], NumberStyles.None, CultureInfo.InvariantCulture, out var partNumber) ||
+            !long.TryParse(keyParts[3], NumberStyles.None, CultureInfo.InvariantCulture, out var fileIndex) ||
+            partNumber < 0 || fileIndex < 0)
+        {
+            throw new InvalidFileKeyException(fileKey);
+        }
+
         var nodeName = keyParts[0];
         var bucketName = keyParts[1];
-        var partNumber = int.Parse(keyParts[2], CultureInfo.InvariantCulture);
-        var partOffset = long.Parse(keyParts[3], CultureInfo.InvariantCulture);
 
         if (nodeName != options.Value.NodeName)
             throw new FeatureNotImplementedException("Переадресация на другую ноду.");
 
-        var location = new DataLocation(bucketName, partNumber, partOffset);
+        var location = new DataLocation(bucketName, partNumber, fileIndex);
         var bucketStorage = nodeStorage.GetBucket(bucketName);
         await bucketStorage.Read(location, SetupHeaders, context.Response.Body, token);
 
